@@ -1,0 +1,147 @@
+<UserControl x:Class="WinStart.App.Controls.TweakCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:loc="clr-namespace:WinStart.App.Infrastructure">
+
+    <Border Style="{StaticResource SoftCard}" Margin="0,0,0,12">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}" VerticalAlignment="Center"
+                      Margin="0,0,12,0" IsEnabled="{Binding IsSelectable}" />
+
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+                <TextBlock Text="{Binding Title}" FontSize="15.5" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding Description}" FontSize="13" Margin="0,4,0,0"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                    <Border Visibility="{Binding IsDestructive, Converter={StaticResource BoolToVisibility}}"
+                            Background="#22E0483E" CornerRadius="5" Padding="8,3" Margin="0,0,6,0">
+                        <TextBlock Text="{loc:Text card.destructive}" FontSize="11.5" Foreground="#E0483E" />
+                    </Border>
+                    <Border Visibility="{Binding NeedsExplorer, Converter={StaticResource BoolToVisibility}}"
+                            Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="5"
+                            Padding="8,3">
+                        <TextBlock Text="{loc:Text card.needsExplorer}" FontSize="11.5"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Margin="0,10,0,0"
+                            Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}">
+                    <ProgressBar Height="4" Margin="0,0,0,6"
+                                 IsIndeterminate="{Binding IsIndeterminate}"
+                                 Value="{Binding Progress}" Maximum="100" />
+                    <TextBlock Text="{Binding StatusText}" FontSize="12"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,8"
+                            Visibility="{Binding IsToggle, Converter={StaticResource BoolToVisibility}}">
+                    <Ellipse>
+                        <Ellipse.Style>
+                            <Style TargetType="Ellipse" BasedOn="{StaticResource StateDot}">
+                                <Setter Property="Fill" Value="{DynamicResource TextFillColorDisabledBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsApplied}" Value="True">
+                                        <Setter Property="Fill" Value="#2FA65A" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Ellipse.Style>
+                    </Ellipse>
+                    <TextBlock Text="{Binding StateText}" FontSize="12.5"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <TextBlock Text="{Binding StatusText}" FontSize="12" Margin="0,0,0,8" MaxWidth="150"
+                           HorizontalAlignment="Right" TextAlignment="Right" TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                    <TextBlock.Visibility>
+                        <MultiBinding Converter="{StaticResource AllTrueToVisibility}">
+                            <Binding Path="IsBusy" Converter="{StaticResource InvertBool}" />
+                            <Binding Path="StatusText" Converter="{StaticResource NotEmptyBool}" />
+                        </MultiBinding>
+                    </TextBlock.Visibility>
+                </TextBlock>
+
+                <ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}"
+                          MinWidth="150" Margin="0,0,0,8" HorizontalAlignment="Right"
+                          Visibility="{Binding HasOptions, Converter={StaticResource BoolToVisibility}}"
+                          IsEnabled="{Binding CanInteract}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="12" Height="12" CornerRadius="3" Margin="0,0,8,0"
+                                        VerticalAlignment="Center"
+                                        Background="{Binding Swatch, Converter={StaticResource HexToBrush}}"
+                                        Visibility="{Binding Swatch, Converter={StaticResource NullToVisibility}}" />
+                                <TextBlock Text="{Binding TitleKey, Converter={StaticResource LocKey}}"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <CheckBox Content="{loc:Text card.shiftOption}" IsChecked="{Binding ShiftExtended}"
+                          HorizontalAlignment="Right" Margin="0,0,0,8"
+                          IsEnabled="{Binding CanInteract}"
+                          Visibility="{Binding SupportsShift, Converter={StaticResource BoolToVisibility}}" />
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <ui:Button Content="{loc:Text card.cancel}" Command="{Binding CancelCommand}"
+                               Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}"
+                               Appearance="Secondary" Margin="8,0,0,0" />
+
+                    <ui:Button Command="{Binding RevertCommand}" Appearance="Secondary" Margin="8,0,0,0"
+                               Content="{loc:Text card.revert}">
+                        <ui:Button.Visibility>
+                            <MultiBinding Converter="{StaticResource AllTrueToVisibility}">
+                                <Binding Path="ShowRevert" />
+                                <Binding Path="IsBusy" Converter="{StaticResource InvertBool}" />
+                            </MultiBinding>
+                        </ui:Button.Visibility>
+                    </ui:Button>
+
+                    <ui:Button Command="{Binding ApplyCommand}" Appearance="Primary"
+                               MinWidth="118" Margin="8,0,0,0">
+                        <ui:Button.Visibility>
+                            <MultiBinding Converter="{StaticResource AllTrueToVisibility}">
+                                <Binding Path="ShowApply" />
+                                <Binding Path="IsBusy" Converter="{StaticResource InvertBool}" />
+                            </MultiBinding>
+                        </ui:Button.Visibility>
+                        <ui:Button.Content>
+                            <TextBlock>
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="{Binding ActionVerb}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsToggle}" Value="True">
+                                                <Setter Property="Text" Value="{loc:Text card.apply}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </ui:Button.Content>
+                    </ui:Button>
+                </StackPanel>
+
+                <TextBlock Text="{loc:Text card.unavailable}" FontSize="12" Margin="0,4,0,0"
+                           HorizontalAlignment="Right"
+                           Foreground="{DynamicResource TextFillColorDisabledBrush}"
+                           Visibility="{Binding IsUnavailable, Converter={StaticResource BoolToVisibility}}" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

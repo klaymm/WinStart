@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>WinStartSetup</AssemblyName>
+    <RootNamespace>WinStart.Installer</RootNamespace>
+    <ApplicationIcon>Assets\WinTweak.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WPF-UI" Version="3.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\WinTweak.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Payload\app.zip" Condition="Exists('$(MSBuildProjectDirectory)\Payload\app.zip')">
+      <LogicalName>WinStart.Installer.payload.zip</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+</Project>

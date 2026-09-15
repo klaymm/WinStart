@@ -1,0 +1,13 @@
+# Сборка
+bin/
+obj/
+build/publish/
+build/dist/
+
+# Полезная нагрузка установщика — генерируется build\build-installer.ps1
+src/WinStart.Installer/Payload/
+
+# IDE
+.vs/
+*.user
+*.suo

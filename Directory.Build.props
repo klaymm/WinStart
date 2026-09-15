@@ -1,0 +1,16 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Product>WinStart</Product>
+    <Company>WinStart</Company>
+    <Version>1.1.4</Version>
+    <FileVersion>1.1.4.0</FileVersion>
+    <AssemblyVersion>1.1.4.0</AssemblyVersion>
+    <InformationalVersion>$(Version)+build.$([System.DateTime]::UtcNow.ToString(yyyyMMdd))</InformationalVersion>
+    <Copyright>WinStart</Copyright>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+  </PropertyGroup>
+</Project>

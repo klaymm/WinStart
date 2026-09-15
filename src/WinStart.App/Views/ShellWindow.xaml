@@ -1,0 +1,163 @@
+<ui:FluentWindow x:Class="WinStart.App.Views.ShellWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 xmlns:controls="clr-namespace:WinStart.App.Controls"
+                 xmlns:loc="clr-namespace:WinStart.App.Infrastructure"
+                 Title="WinStart"
+                 Width="1440" Height="920" MinWidth="1100" MinHeight="700"
+                 WindowStartupLocation="CenterScreen"
+                 ExtendsContentIntoTitleBar="True"
+                 WindowBackdropType="Mica"
+                 WindowCornerPreference="Round">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Grid.Row="0" x:Name="TitleBar" Height="42" Title="{Binding Title}">
+            <ui:TitleBar.Icon>
+                <ui:ImageIcon Width="18" Height="18"
+                              Source="pack://application:,,,/Assets/WinTweak.ico" />
+            </ui:TitleBar.Icon>
+        </ui:TitleBar>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="228" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Grid x:Name="NavPanel" Grid.Column="0" IsEnabled="{Binding CanNavigate}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <ui:TextBox x:Name="SearchBox" Grid.Row="0" Margin="10,4,10,6" Icon="{ui:SymbolIcon Search24}"
+                            PlaceholderText="{loc:Text nav.search}"
+                            ClearButtonEnabled="True"
+                            Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+
+                <controls:LiquidGlassIndicator x:Name="NavGlass" Grid.Row="1" Grid.RowSpan="2" />
+
+                <ScrollViewer x:Name="NavScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,4,0,0">
+                    <ItemsControl x:Name="TopList" ItemsSource="{Binding TopItems}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <ToggleButton Style="{StaticResource NavItemButton}"
+                                              IsChecked="{Binding IsSelected, Mode=OneWay}"
+                                              Command="{Binding DataContext.SelectCommand,
+                                                  RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                              CommandParameter="{Binding}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <ItemsControl x:Name="BottomList" Grid.Row="2" ItemsSource="{Binding BottomItems}" Margin="0,4,0,4">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <ToggleButton Style="{StaticResource NavItemButton}"
+                                          IsChecked="{Binding IsSelected, Mode=OneWay}"
+                                          Command="{Binding DataContext.SelectCommand,
+                                              RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                          CommandParameter="{Binding}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Button Grid.Row="3" Command="{Binding OpenProfileCommand}" Cursor="Hand"
+                        Margin="8,0,8,10" Padding="8,8" HorizontalContentAlignment="Left"
+                        Background="Transparent" BorderThickness="0">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="8" Padding="8,8">
+                                <ContentPresenter />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bg" Property="Background"
+                                            Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                    <StackPanel Orientation="Horizontal">
+                        <Border Width="34" Height="34" CornerRadius="17" Margin="0,0,10,0">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Offset="0" Color="#36B8FF" />
+                                    <GradientStop Offset="1" Color="#0A6BD6" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <TextBlock Text="{Binding ProfileInitial}" FontSize="15" FontWeight="Bold"
+                                       Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{Binding ProfileName}" FontSize="13" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                       TextTrimming="CharacterEllipsis" MaxWidth="140" />
+                            <TextBlock Text="{Binding ProfileRole}" FontSize="11.5"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <Border Grid.Column="1" Margin="6,6,10,12"
+                    Background="{DynamicResource ApplicationBackgroundBrush}"
+                    CornerRadius="12">
+                <Grid>
+                    <ContentControl x:Name="PageHost" Content="{Binding CurrentContent}" Margin="18,16,14,14" />
+                    <ContentPresenter x:Name="RootContentDialog" />
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Border x:Name="IntroOverlay" Grid.Row="0" Grid.RowSpan="2" CornerRadius="8">
+            <Grid>
+                <StackPanel x:Name="IntroText" VerticalAlignment="Center" HorizontalAlignment="Center" Opacity="0">
+                    <StackPanel.RenderTransform>
+                        <TranslateTransform Y="-46" />
+                    </StackPanel.RenderTransform>
+                    <TextBlock x:Name="WordMark" Text="WinStart 1.0" FontSize="64" FontWeight="Bold"
+                               HorizontalAlignment="Center">
+                        <TextBlock.Foreground>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0" SpreadMethod="Repeat">
+                                <LinearGradientBrush.RelativeTransform>
+                                    <TranslateTransform x:Name="WordShift" X="0" />
+                                </LinearGradientBrush.RelativeTransform>
+                                <GradientStop Offset="0.0" Color="#2C7FD4" />
+                                <GradientStop Offset="0.35" Color="#4FA3FF" />
+                                <GradientStop Offset="0.65" Color="#36B8FF" />
+                                <GradientStop Offset="1.0" Color="#7B5CFF" />
+                            </LinearGradientBrush>
+                        </TextBlock.Foreground>
+                    </TextBlock>
+                </StackPanel>
+
+                <Canvas x:Name="StreakCanvas" ClipToBounds="True">
+                    <Rectangle x:Name="Streak" Height="3" Width="400" RadiusX="1.5" RadiusY="1.5">
+                        <Rectangle.Fill>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Offset="0" Color="#0036B8FF" />
+                                <GradientStop Offset="0.35" Color="#CC4FA3FF" />
+                                <GradientStop Offset="0.5" Color="#FF7FC8FF" />
+                                <GradientStop Offset="0.65" Color="#CC4FA3FF" />
+                                <GradientStop Offset="1" Color="#007B5CFF" />
+                            </LinearGradientBrush>
+                        </Rectangle.Fill>
+                        <Rectangle.Effect>
+                            <BlurEffect Radius="2" />
+                        </Rectangle.Effect>
+                    </Rectangle>
+                </Canvas>
+            </Grid>
+        </Border>
+    </Grid>
+</ui:FluentWindow>
