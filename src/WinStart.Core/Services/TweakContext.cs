@@ -46,6 +46,8 @@ public sealed class TweakRunContext : ITweakContext
     public List<RegistryValueSnapshot> Snapshots { get; } = [];
     public List<RegistryKeyBackup> KeyBackups { get; } = [];
     public bool ExplorerRestartRequested { get; private set; }
+    public string? ResultMessage { get; private set; }
+    public bool ResultHasIssues { get; private set; }
 
     public string Text(string key, params object[] args) => args.Length == 0 ? _loc[key] : _loc.Format(key, args);
 
@@ -53,6 +55,13 @@ public sealed class TweakRunContext : ITweakContext
     {
         var line = $"{DateTime.Now:HH:mm:ss}  {message}";
         lock (Lines) Lines.Add(line);
+    }
+
+    public void Result(string message, bool hasIssues)
+    {
+        Log(message);
+        ResultMessage = message;
+        ResultHasIssues = hasIssues;
     }
 
     public void Progress(string? status, double? percent = null)

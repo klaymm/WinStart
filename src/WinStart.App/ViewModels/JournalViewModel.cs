@@ -136,7 +136,7 @@ public sealed partial class JournalViewModel : ObservableObject
     {
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
-            FileName = $"WinStart-{_loc["journal.export.file"]}-{DateTime.Now:yyyy-MM-dd}.zip",
+            FileName = $"WinStart-{_loc["journal.export.name"]}-{DateTime.Now:yyyy-MM-dd}.zip",
             DefaultExt = ".zip",
             Filter = "ZIP|*.zip",
             Title = _loc["journal.export"]

@@ -64,7 +64,7 @@ public sealed partial class HomeViewModel : ObservableObject
 
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
-            FileName = $"WinStart-{_loc["home.report.file"]}-{DateTime.Now:yyyy-MM-dd}.txt",
+            FileName = $"WinStart-{_loc["home.report.name"]}-{DateTime.Now:yyyy-MM-dd}.txt",
             DefaultExt = ".txt",
             Filter = "TXT|*.txt",
             Title = _loc["home.report"]

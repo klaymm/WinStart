@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Text;
 using WinStart.Core.Abstractions;
 
@@ -11,10 +11,13 @@ public sealed class ProcessRunner : IProcessRunner
     private readonly ILocalizationService _loc;
     private static readonly Encoding OemEncoding;
 
+    [DllImport("kernel32.dll")]
+    private static extern uint GetOEMCP();
+
     static ProcessRunner()
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-        try { OemEncoding = Encoding.GetEncoding(CultureInfo.CurrentCulture.TextInfo.OEMCodePage); }
+        try { OemEncoding = Encoding.GetEncoding((int)GetOEMCP()); }
         catch { OemEncoding = Encoding.UTF8; }
     }
 
@@ -43,8 +46,8 @@ public sealed class ProcessRunner : IProcessRunner
             using var proc = Process.Start(psi);
             if (proc is null) return new ProcessResult(-1, "", _loc.Format("log.startFailed", file));
 
-            var stdout = proc.StandardOutput.ReadToEndAsync(CancellationToken.None);
-            var stderr = proc.StandardError.ReadToEndAsync(CancellationToken.None);
+            var stdout = ReadAllAsync(proc.StandardOutput.BaseStream);
+            var stderr = ReadAllAsync(proc.StandardError.BaseStream);
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             if (timeoutMs > 0) cts.CancelAfter(timeoutMs);
@@ -58,14 +61,39 @@ public sealed class ProcessRunner : IProcessRunner
             }
 
             return new ProcessResult(proc.ExitCode,
-                (await stdout.ConfigureAwait(false)).Trim(),
-                (await stderr.ConfigureAwait(false)).Trim());
+                Decode(await stdout.ConfigureAwait(false)).Trim(),
+                Decode(await stderr.ConfigureAwait(false)).Trim());
         }
         catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             return new ProcessResult(-1, "", ex.Message);
         }
+    }
+
+    private static async Task<byte[]> ReadAllAsync(Stream stream)
+    {
+        using var buffer = new MemoryStream();
+        await stream.CopyToAsync(buffer).ConfigureAwait(false);
+        return buffer.ToArray();
+    }
+
+    private static string Decode(byte[] bytes)
+    {
+        if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE)
+            return Encoding.Unicode.GetString(bytes, 2, bytes.Length - 2).Replace("\0", "");
+
+        var sample = Math.Min(bytes.Length, 512);
+        int odd = 0, zeros = 0;
+        for (var i = 1; i < sample; i += 2)
+        {
+            odd++;
+            if (bytes[i] == 0) zeros++;
+        }
+
+        return odd > 0 && zeros * 10 >= odd * 4
+            ? Encoding.Unicode.GetString(bytes).Replace("\0", "")
+            : OemEncoding.GetString(bytes);
     }
 
     private static void TryKill(Process p)

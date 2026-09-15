@@ -60,6 +60,8 @@ public sealed partial class TweakCardViewModel : ObservableObject
     [ObservableProperty] private bool _isSelected;
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private string? _statusText;
+    [ObservableProperty] private string? _resultText;
+    [ObservableProperty] private bool _resultHasIssues;
     [ObservableProperty] private double _progress;
     [ObservableProperty] private bool _isIndeterminate = true;
 
@@ -166,6 +168,8 @@ public sealed partial class TweakCardViewModel : ObservableObject
         Progress = 0;
         IsIndeterminate = true;
         StatusText = _loc["card.working"];
+        ResultText = null;
+        ResultHasIssues = false;
         _cts = new CancellationTokenSource();
 
         void Report(string? status, double? percent)
@@ -186,6 +190,12 @@ public sealed partial class TweakCardViewModel : ObservableObject
             var entry = direction == TweakDirection.Apply
                 ? await _tweaks.ApplyAsync(Definition, SelectedOption?.Id, ShiftExtended, Report, _cts.Token)
                 : await _tweaks.RevertAsync(Definition, Report, _cts.Token);
+
+            if (entry.Status == TweakStatus.Success)
+            {
+                ResultText = entry.Message;
+                ResultHasIssues = entry.HasIssues;
+            }
 
             StatusText = entry.Status switch
             {
