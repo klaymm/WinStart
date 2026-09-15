@@ -1,0 +1,154 @@
+using System.Globalization;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using WinStart.App.Infrastructure;
+using WinStart.App.Services;
+using WinStart.Core.Abstractions;
+
+namespace WinStart.App.ViewModels;
+
+public sealed class ChangelogEntry
+{
+    public required string Title { get; init; }
+    public required string Date { get; init; }
+    public bool IsLatest { get; init; }
+    public required IReadOnlyList<string> Changes { get; init; }
+}
+
+public enum UpdateState { Idle, Checking, UpToDate, Available, Downloading, Error }
+
+public sealed partial class UpdatesViewModel : ObservableObject
+{
+    private static readonly (string Version, DateTime Date, int Count)[] Releases =
+    [
+        ("1.1.4", new DateTime(2026, 9, 15), 9),
+        ("1.1.3", new DateTime(2026, 9, 15), 5),
+        ("1.1.2", new DateTime(2026, 9, 14), 4),
+        ("1.1.1", new DateTime(2026, 9, 14), 8),
+        ("1.1", new DateTime(2026, 9, 14), 8),
+        ("1.0", new DateTime(2026, 9, 13), 4)
+    ];
+
+    private readonly ILocalizationService _loc;
+    private readonly IUpdateService _updates;
+    private readonly IBusyService _busy;
+
+    public UpdatesViewModel(ILocalizationService loc, IUpdateService updates, IBusyService busy)
+    {
+        _loc = loc;
+        _updates = updates;
+        _busy = busy;
+        BuildEntries();
+    }
+
+    public string Title => _loc["nav.updates"];
+    public string Subtitle => _loc["updates.subtitle"];
+    public string CurrentVersion => _loc.Format("updates.current", AppInfo.Version);
+
+    [ObservableProperty] private IReadOnlyList<ChangelogEntry> _entries = [];
+
+    [ObservableProperty] private UpdateState _state = UpdateState.Idle;
+    [ObservableProperty] private UpdateInfo? _available;
+    [ObservableProperty] private string? _statusText;
+    [ObservableProperty] private double _progress;
+
+    public bool IsAvailable => Available is not null;
+    public bool IsBusyState => State is UpdateState.Checking or UpdateState.Downloading;
+    public bool IsError => State == UpdateState.Error;
+    public string AvailableTitle => Available is null ? "" : _loc.Format("updates.available", Available.Version.ToString(3));
+    public string AvailableNotes => Available?.Notes.Trim() ?? "";
+
+    partial void OnStateChanged(UpdateState value)
+    {
+        OnPropertyChanged(nameof(IsBusyState));
+        OnPropertyChanged(nameof(IsError));
+        CheckCommand.NotifyCanExecuteChanged();
+        InstallCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnAvailableChanged(UpdateInfo? value)
+    {
+        OnPropertyChanged(nameof(IsAvailable));
+        OnPropertyChanged(nameof(AvailableTitle));
+        OnPropertyChanged(nameof(AvailableNotes));
+        InstallCommand.NotifyCanExecuteChanged();
+    }
+
+    private bool CanCheck() => !IsBusyState;
+
+    [RelayCommand(CanExecute = nameof(CanCheck))]
+    public async Task CheckAsync()
+    {
+        State = UpdateState.Checking;
+        StatusText = _loc["updates.checking"];
+        try
+        {
+            Available = await _updates.CheckAsync(CancellationToken.None);
+            State = Available is null ? UpdateState.UpToDate : UpdateState.Available;
+            StatusText = Available is null ? _loc["updates.upToDate"] : null;
+        }
+        catch (Exception ex)
+        {
+            State = UpdateState.Error;
+            StatusText = _loc.Format("updates.checkFailed", ex.Message);
+        }
+    }
+
+    public async Task CheckSilentlyAsync()
+    {
+        if (State != UpdateState.Idle) return;
+        try
+        {
+            Available = await _updates.CheckAsync(CancellationToken.None);
+            State = Available is null ? UpdateState.Idle : UpdateState.Available;
+        }
+        catch { State = UpdateState.Idle; }
+    }
+
+    private bool CanInstall() => IsAvailable && !IsBusyState;
+
+    [RelayCommand(CanExecute = nameof(CanInstall))]
+    private async Task InstallAsync()
+    {
+        if (Available is null) return;
+
+        using var _ = _busy.Begin();
+        State = UpdateState.Downloading;
+        Progress = 0;
+        StatusText = _loc["updates.downloading"];
+        try
+        {
+            var path = await _updates.DownloadAsync(Available,
+                new Progress<double>(p => System.Windows.Application.Current?.Dispatcher.Invoke(() => Progress = p)),
+                CancellationToken.None);
+
+            StatusText = _loc["updates.installing"];
+            _updates.InstallAndExit(path);
+        }
+        catch (Exception ex)
+        {
+            State = UpdateState.Error;
+            StatusText = _loc.Format("updates.downloadFailed", ex.Message);
+        }
+    }
+
+    public void RefreshTexts()
+    {
+        OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(Subtitle));
+        OnPropertyChanged(nameof(CurrentVersion));
+        OnPropertyChanged(nameof(AvailableTitle));
+        BuildEntries();
+    }
+
+    private void BuildEntries() =>
+        Entries = Releases.Select((release, index) => new ChangelogEntry
+        {
+            Title = _loc.Format("updates.version", release.Version),
+            Date = release.Date.ToString("d MMMM yyyy", CultureInfo.CurrentUICulture),
+            IsLatest = index == 0,
+            Changes = Enumerable.Range(1, release.Count)
+                .Select(n => _loc[$"changelog.{release.Version}.{n}"])
+                .ToList()
+        }).ToList();
+}

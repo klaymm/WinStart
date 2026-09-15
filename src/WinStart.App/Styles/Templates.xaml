@@ -1,0 +1,1039 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                    xmlns:vm="clr-namespace:WinStart.App.ViewModels"
+                    xmlns:ctrl="clr-namespace:WinStart.App.Controls"
+                    xmlns:inf="clr-namespace:WinStart.App.Infrastructure"
+                    xmlns:loc="clr-namespace:WinStart.App.Infrastructure">
+
+    <!-- ===== Конвертеры (единые экземпляры) ===== -->
+    <inf:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+    <inf:InvertBoolToVisibilityConverter x:Key="InvertBoolToVisibility" />
+    <inf:InvertBoolConverter x:Key="InvertBool" />
+    <inf:NullToVisibilityConverter x:Key="NullToVisibility" />
+    <inf:NotEmptyConverter x:Key="NotEmptyBool" />
+    <inf:AllTrueToVisibilityConverter x:Key="AllTrueToVisibility" />
+    <inf:HexToBrushConverter x:Key="HexToBrush" />
+    <inf:LocKeyConverter x:Key="LocKey" />
+
+    <!-- ===== Общие стили текста форм ===== -->
+    <Style x:Key="UaLabel" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,0,16,0" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    </Style>
+
+    <Style x:Key="UaDesc" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="LineHeight" Value="18" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+    </Style>
+
+    <Style x:Key="UaSubTitle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    </Style>
+
+    <Style x:Key="UaCode" TargetType="TextBox">
+        <Setter Property="AcceptsReturn" Value="True" />
+        <Setter Property="AcceptsTab" Value="True" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+        <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="MinHeight" Value="110" />
+        <Setter Property="MaxHeight" Value="320" />
+        <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+        <Setter Property="HorizontalScrollBarVisibility" Value="Auto" />
+    </Style>
+
+    <!-- ===== Главная ===== -->
+    <DataTemplate DataType="{x:Type vm:HomeViewModel}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
+            <Grid Margin="4">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="6,4,12,20">
+                    <TextBlock Style="{StaticResource PageTitle}" FontSize="30">
+                        <Run Text="{Binding Welcome, Mode=OneWay}" /><Run Text=" " /><Run Text="{Binding UserName, Mode=OneWay}" /><Run Text="." />
+                    </TextBlock>
+                    <TextBlock Text="{Binding Subtitle}" Style="{StaticResource PageTitle}"
+                               FontSize="30" FontWeight="Bold" Margin="0,2,0,0" />
+                </StackPanel>
+
+                <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource SoftCard}" Margin="6">
+                    <StackPanel>
+                        <TextBlock Text="{Binding WindowsTitle}" FontSize="18" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,12" />
+                        <StackPanel Orientation="Horizontal">
+                            <Grid Width="52" Height="52" Margin="0,0,16,0" VerticalAlignment="Center">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <Rectangle Grid.Row="0" Grid.Column="0" Fill="{DynamicResource SystemAccentColorSecondaryBrush}" Margin="0,0,2,2" RadiusX="2" RadiusY="2" />
+                                <Rectangle Grid.Row="0" Grid.Column="1" Fill="{DynamicResource SystemAccentColorSecondaryBrush}" Margin="2,0,0,2" RadiusX="2" RadiusY="2" />
+                                <Rectangle Grid.Row="1" Grid.Column="0" Fill="{DynamicResource SystemAccentColorSecondaryBrush}" Margin="0,2,2,0" RadiusX="2" RadiusY="2" />
+                                <Rectangle Grid.Row="1" Grid.Column="1" Fill="{DynamicResource SystemAccentColorSecondaryBrush}" Margin="2,2,0,0" RadiusX="2" RadiusY="2" />
+                            </Grid>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{Binding WindowsName}" FontSize="26" FontWeight="Bold"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <TextBlock Text="{Binding WindowsEdition}" FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Text="{Binding WindowsVersion}" FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Text="{Binding WindowsBuild}" FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <ItemsControl Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" ItemsSource="{Binding Stats}"
+                              Margin="2,0,0,0">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="2" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource SoftCard}" Margin="6" Padding="18,16">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                        <ui:SymbolIcon Symbol="{Binding Icon}" FontSize="18" Margin="0,0,10,0"
+                                                       Foreground="{DynamicResource SystemAccentColorPrimaryBrush}"
+                                                       VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding Value}" FontSize="13.5"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding Extra}" FontSize="13" Margin="0,2,0,0"
+                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" TextWrapping="Wrap"
+                                               Visibility="{Binding Extra, Converter={StaticResource NullToVisibility}}" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
+            </ScrollViewer>
+
+            <Grid Grid.Row="1" Margin="6,8,16,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <ui:Button Appearance="Secondary" Command="{Binding SaveReportCommand}"
+                               Content="{loc:Text home.report}" Icon="{ui:SymbolIcon DocumentText24}" />
+                    <TextBlock Text="{Binding ReportStatus}" FontSize="12" Margin="12,0,0,0" VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis"
+                               Visibility="{Binding ReportStatus, Converter={StaticResource NullToVisibility}}" />
+                </StackPanel>
+                <TextBlock Text="{Binding AppVersion}" FontSize="12"
+                           HorizontalAlignment="Right" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+            </Grid>
+        </Grid>
+    </DataTemplate>
+
+    <!-- ===== Раздел твиков ===== -->
+    <DataTemplate DataType="{x:Type vm:CategoryPageViewModel}">
+        <Grid Margin="4">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="4,0,4,16">
+                <StackPanel>
+                    <TextBlock Text="{Binding Title}" Style="{StaticResource PageTitle}" />
+                    <TextBlock Text="{Binding Count}" Style="{StaticResource CardSubtle}" Margin="0,4,0,0" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
+                            Visibility="{Binding HasSelection, Converter={StaticResource BoolToVisibility}}">
+                    <ui:Button Appearance="Secondary" Command="{Binding ClearSelectionCommand}"
+                               Content="{loc:Text section.clearSelection}" Margin="0,0,8,0" />
+                    <ui:Button Appearance="Primary" Command="{Binding ApplySelectedCommand}"
+                               Content="{Binding ApplySelectedText}" Icon="{ui:SymbolIcon Checkmark24}" />
+                </StackPanel>
+            </Grid>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="4,0,10,0">
+                <ItemsControl ItemsSource="{Binding Cards}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <ctrl:TweakCard />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:WingetAppViewModel}">
+        <Border Width="250" Margin="0,0,10,8" Padding="10,8" CornerRadius="8"
+                Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+            <StackPanel>
+                <CheckBox IsChecked="{Binding IsSelected}" VerticalContentAlignment="Center"
+                          IsEnabled="{Binding IsBusy, Converter={StaticResource InvertBool}}">
+                    <TextBlock Text="{Binding Name}" FontSize="13.5" TextTrimming="CharacterEllipsis" />
+                </CheckBox>
+                <StackPanel Orientation="Horizontal" Margin="28,0,0,0">
+                    <TextBlock Text="{loc:Text programs.alreadyInstalled}" FontSize="11.5"
+                               Foreground="#2FA65A"
+                               Visibility="{Binding IsInstalled, Converter={StaticResource BoolToVisibility}}" />
+                    <TextBlock Text="{Binding Status}" FontSize="11.5" TextTrimming="CharacterEllipsis" MaxWidth="210"
+                               Visibility="{Binding Status, Converter={StaticResource NullToVisibility}}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Failed}" Value="True">
+                                        <Setter Property="Foreground" Value="#E0483E" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:TweakCardViewModel}">
+        <ctrl:TweakCard />
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:SearchLink}">
+        <Button Command="{Binding OpenCommand}" Cursor="Hand" HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0" Padding="0" Margin="0,0,0,8">
+            <Button.Template>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bg" CornerRadius="8" Padding="14,10"
+                            Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding Subtitle}" FontSize="12.5" Margin="0,3,0,0" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           Visibility="{Binding Subtitle, Converter={StaticResource NullToVisibility}}" />
+                            </StackPanel>
+                            <ui:SymbolIcon Grid.Column="1" Symbol="ChevronRight24" FontSize="16" Margin="12,0,0,0"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+    </DataTemplate>
+
+    <!-- ===== Поиск ===== -->
+    <DataTemplate DataType="{x:Type vm:SearchViewModel}">
+        <Grid Margin="4">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Margin="4,0,4,16">
+                <TextBlock Style="{StaticResource PageTitle}">
+                    <Run Text="{Binding Title, Mode=OneWay}" /><Run Text=": " /><Run Text="{Binding Query, Mode=OneWay}" />
+                </TextBlock>
+                <TextBlock Text="{Binding Summary}" Style="{StaticResource CardSubtle}" Margin="0,4,0,0" />
+            </StackPanel>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="4,0,10,0">
+                <ItemsControl ItemsSource="{Binding Groups}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="0,0,0,10">
+                                <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" Margin="4,0,0,8"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <ItemsControl ItemsSource="{Binding Items}">
+                                    <ItemsControl.Style>
+                                        <Style TargetType="ItemsControl">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Wrap}" Value="True">
+                                                    <Setter Property="ItemsPanel">
+                                                        <Setter.Value>
+                                                            <ItemsPanelTemplate>
+                                                                <WrapPanel />
+                                                            </ItemsPanelTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ItemsControl.Style>
+                                </ItemsControl>
+                                <ContentControl Content="{Binding Link}" Margin="0,4,0,0"
+                                                Visibility="{Binding Link, Converter={StaticResource NullToVisibility}}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+    </DataTemplate>
+
+    <!-- ===== Программы (winget) ===== -->
+    <DataTemplate DataType="{x:Type vm:ProgramsViewModel}">
+        <Grid Margin="4">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="4,0,4,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                    <TextBlock Text="{Binding Title}" Style="{StaticResource PageTitle}" />
+                    <TextBlock Text="{Binding Subtitle}" Style="{StaticResource CardSubtle}" Margin="0,4,0,0" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <ui:Button Appearance="Secondary" Command="{Binding ReloadCommand}"
+                               Content="{loc:Text programs.refresh}" Icon="{ui:SymbolIcon ArrowSync24}" Margin="0,0,8,0" />
+                    <ui:Button Appearance="Secondary" Command="{Binding ToUnattendCommand}"
+                               Content="{loc:Text programs.toUnattend}" Icon="{ui:SymbolIcon DocumentSettings20}" Margin="0,0,8,0" />
+                    <ui:Button Appearance="Secondary" Command="{Binding ClearSelectionCommand}"
+                               Content="{loc:Text section.clearSelection}" Margin="0,0,8,0"
+                               Visibility="{Binding HasSelection, Converter={StaticResource BoolToVisibility}}" />
+                    <ui:Button Appearance="Primary" Command="{Binding InstallSelectedCommand}"
+                               Content="{Binding InstallText}" Icon="{ui:SymbolIcon ArrowDownload24}" />
+                </StackPanel>
+            </Grid>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="4,0,10,0">
+                <StackPanel>
+                    <Border Style="{StaticResource SoftCard}" Margin="0,0,0,12" Background="#22E0483E"
+                            Visibility="{Binding WingetMissing, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="{loc:Text programs.missing}" FontSize="13.5" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                    </Border>
+
+                    <ItemsControl ItemsSource="{Binding Groups}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource SoftCard}" Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,10"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                        <ItemsControl ItemsSource="{Binding Items}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
+
+            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="6,8,6,0"
+                        Visibility="{Binding StatusText, Converter={StaticResource NullToVisibility}}">
+                <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" Margin="0,0,8,0"
+                                 Visibility="{Binding IsInstalling, Converter={StaticResource BoolToVisibility}}" />
+                <TextBlock Text="{Binding StatusText}" FontSize="12.5" TextWrapping="Wrap" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+        </Grid>
+    </DataTemplate>
+
+    <!-- ===== Автозагрузка (по образцу Autoruns) ===== -->
+    <DataTemplate DataType="{x:Type vm:StartupEntryViewModel}">
+        <Border Padding="12,10" Margin="0,0,0,6" CornerRadius="8"
+                Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Grid Grid.Column="0" Width="56" VerticalAlignment="Center" Margin="0,0,10,0">
+                    <ui:ToggleSwitch IsChecked="{Binding Enabled}" HorizontalAlignment="Left"
+                                     IsEnabled="{Binding IsBusy, Converter={StaticResource InvertBool}}"
+                                     Visibility="{Binding CanToggle, Converter={StaticResource BoolToVisibility}}" />
+                    <ui:SymbolIcon Symbol="LockClosed24" FontSize="16" HorizontalAlignment="Left" Margin="14,0,0,0"
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                   ToolTip="{loc:Text startup.readOnly}"
+                                   Visibility="{Binding CanToggle, Converter={StaticResource InvertBoolToVisibility}}" />
+                </Grid>
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <TextBlock Text="{Binding Publisher}" FontSize="12.5" Margin="10,0,0,0" VerticalAlignment="Bottom"
+                                   TextTrimming="CharacterEllipsis">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasPublisher}" Value="False">
+                                            <Setter Property="Foreground" Value="#E0A03E" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                    <TextBlock Text="{Binding Command}" FontSize="12" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding Command}" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                    <TextBlock Text="{Binding Location}" FontSize="11.5" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                    <TextBlock Text="{Binding Error}" FontSize="12" Margin="0,3,0,0" TextWrapping="Wrap" Foreground="#E0483E"
+                               Visibility="{Binding Error, Converter={StaticResource NullToVisibility}}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                    <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" Margin="0,0,8,0"
+                                     Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
+                    <ui:Button Appearance="Secondary" Command="{Binding OpenLocationCommand}" Padding="8,5"
+                               Icon="{ui:SymbolIcon FolderOpen24}" ToolTip="{loc:Text startup.openFolder}"
+                               Visibility="{Binding HasFile, Converter={StaticResource BoolToVisibility}}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:StartupViewModel}">
+        <Grid Margin="4">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="4,0,4,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                    <TextBlock Text="{Binding Title}" Style="{StaticResource PageTitle}" />
+                    <TextBlock Text="{Binding Subtitle}" Style="{StaticResource CardSubtle}" Margin="0,4,0,0" />
+                </StackPanel>
+                <ui:Button Grid.Column="1" Appearance="Secondary" Command="{Binding ReloadCommand}" VerticalAlignment="Center"
+                           Content="{loc:Text startup.refresh}" Icon="{ui:SymbolIcon ArrowSync24}" />
+            </Grid>
+
+            <Grid Grid.Row="1" Margin="4,0,4,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="280" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <ui:TextBox Grid.Column="0" Icon="{ui:SymbolIcon Search24}" ClearButtonEnabled="True"
+                            PlaceholderText="{loc:Text startup.filter}"
+                            Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" />
+                <CheckBox Grid.Column="1" IsChecked="{Binding HideMicrosoft}" Content="{loc:Text startup.hideMicrosoft}"
+                          Margin="16,0,0,0" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="2" Text="{Binding CountText}" Style="{StaticResource CardSubtle}"
+                           HorizontalAlignment="Right" VerticalAlignment="Center" />
+            </Grid>
+
+            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="4,0,10,0">
+                <ItemsControl ItemsSource="{Binding Groups}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource SoftCard}" Margin="0,0,0,12">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                    <TextBlock Text="{Binding Description}" Style="{StaticResource UaDesc}" Margin="0,2,0,10" />
+                                    <ItemsControl ItemsSource="{Binding Items}" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="6,8,6,0"
+                        Visibility="{Binding StatusText, Converter={StaticResource NullToVisibility}}">
+                <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" Margin="0,0,8,0"
+                                 Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}" />
+                <TextBlock Text="{Binding StatusText}" FontSize="12.5" TextWrapping="Wrap" VerticalAlignment="Center">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding StatusIsError}" Value="True">
+                                    <Setter Property="Foreground" Value="#E0483E" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+        </Grid>
+    </DataTemplate>
+
+    <!-- ===== Журнал ===== -->
+    <DataTemplate DataType="{x:Type vm:JournalViewModel}">
+        <Grid Margin="4">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="4,0,4,16">
+                <TextBlock Text="{Binding Title}" Style="{StaticResource PageTitle}" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <ui:Button Appearance="Secondary" Command="{Binding ExportCommand}"
+                               Content="{loc:Text journal.export}" Margin="0,0,8,0"
+                               Icon="{ui:SymbolIcon FolderZip24}" />
+                    <ui:Button Appearance="Secondary" Command="{Binding OpenFileCommand}"
+                               Content="{loc:Text journal.openFile}" Margin="0,0,8,0"
+                               Icon="{ui:SymbolIcon Open24}" />
+                    <ui:Button Appearance="Secondary" Command="{Binding ClearCommand}"
+                               Content="{loc:Text journal.clear}" Icon="{ui:SymbolIcon Delete24}" />
+                </StackPanel>
+            </Grid>
+
+            <TextBlock Grid.Row="0" Text="{Binding ExportStatus}" FontSize="12" Margin="6,44,6,0" VerticalAlignment="Top"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis"
+                       Visibility="{Binding ExportStatus, Converter={StaticResource NullToVisibility}}" />
+
+            <TextBlock Grid.Row="1" Text="{Binding EmptyText}" TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="6,20,6,0"
+                       VerticalAlignment="Top"
+                       Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}" />
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="4,0,18,0"
+                          Visibility="{Binding IsEmpty, Converter={StaticResource InvertBoolToVisibility}}">
+                <ItemsControl ItemsSource="{Binding Entries}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource SoftCard}" Padding="18,14" Margin="0,0,4,10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Ellipse Grid.Column="0" Width="10" Height="10" VerticalAlignment="Top"
+                                             Margin="0,5,14,0"
+                                             Fill="{Binding StatusColor, Converter={StaticResource HexToBrush}}" />
+
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="{Binding Title}" FontSize="14.5" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                   TextWrapping="Wrap" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                            <TextBlock Text="{Binding Timestamp}" FontSize="12"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                            <TextBlock Text="  ·  " FontSize="12"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                            <TextBlock Text="{Binding DirectionText}" FontSize="12"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                            <TextBlock Text="  ·  " FontSize="12"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                            <TextBlock Text="{Binding StatusText}" FontSize="12"
+                                                       Foreground="{Binding StatusColor, Converter={StaticResource HexToBrush}}" />
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Message}" FontSize="12" Margin="0,4,0,0"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                   TextWrapping="Wrap"
+                                                   Visibility="{Binding Message, Converter={StaticResource NullToVisibility}}" />
+
+                                        <Expander Margin="2,8,0,0" Padding="6,0,0,0"
+                                                  Visibility="{Binding HasLog, Converter={StaticResource BoolToVisibility}}"
+                                                  Header="{loc:Text journal.details}">
+                                            <TextBox Text="{Binding Log, Mode=OneWay}" IsReadOnly="True"
+                                                     FontFamily="Cascadia Mono, Consolas" FontSize="11.5"
+                                                     Background="Transparent" BorderThickness="0"
+                                                     TextWrapping="NoWrap" MaxHeight="180"
+                                                     VerticalScrollBarVisibility="Auto"
+                                                     HorizontalScrollBarVisibility="Auto" />
+                                        </Expander>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="12,0,0,0">
+                                        <ui:Button Content="{loc:Text journal.revert}" Appearance="Secondary"
+                                                   Command="{Binding DataContext.RevertCommand,
+                                                       RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                   CommandParameter="{Binding}"
+                                                   Visibility="{Binding CanRevert, Converter={StaticResource BoolToVisibility}}" />
+                                        <TextBlock Text="{loc:Text journal.reverted}" FontSize="12"
+                                                   Foreground="{DynamicResource TextFillColorDisabledBrush}"
+                                                   HorizontalAlignment="Right"
+                                                   Visibility="{Binding IsReverted, Converter={StaticResource BoolToVisibility}}" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+    </DataTemplate>
+
+    <!-- ===== Обновления ===== -->
+    <DataTemplate DataType="{x:Type vm:UpdatesViewModel}">
+        <Grid Margin="4">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Margin="4,0,4,16">
+                <TextBlock Text="{Binding Title}" Style="{StaticResource PageTitle}" />
+                <TextBlock Text="{Binding Subtitle}" Style="{StaticResource CardSubtle}" Margin="0,4,0,0" />
+            </StackPanel>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="4,0,14,0">
+                <StackPanel>
+                    <Border Style="{StaticResource SoftCard}" Margin="0,0,0,12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                <TextBlock Text="{Binding CurrentVersion}" FontSize="15" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <TextBlock Text="{Binding AvailableTitle}" FontSize="14" FontWeight="SemiBold" Margin="0,6,0,0"
+                                           Foreground="{DynamicResource SystemAccentColorPrimaryBrush}"
+                                           Visibility="{Binding IsAvailable, Converter={StaticResource BoolToVisibility}}" />
+                                <TextBlock Text="{Binding AvailableNotes}" FontSize="12.5" Margin="0,4,0,0" TextWrapping="Wrap"
+                                           MaxHeight="140" TextTrimming="CharacterEllipsis"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           Visibility="{Binding AvailableNotes, Converter={StaticResource NullToVisibility}}" />
+                                <TextBlock Text="{Binding StatusText}" FontSize="12.5" Margin="0,6,0,0" TextWrapping="Wrap"
+                                           Visibility="{Binding StatusText, Converter={StaticResource NullToVisibility}}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsError}" Value="True">
+                                                    <Setter Property="Foreground" Value="#E0483E" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <ProgressBar Height="4" Margin="0,8,0,0" Maximum="100" Value="{Binding Progress}"
+                                             Visibility="{Binding IsBusyState, Converter={StaticResource BoolToVisibility}}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                                <ui:Button Appearance="Secondary" Command="{Binding CheckCommand}"
+                                           Content="{loc:Text updates.check}" Icon="{ui:SymbolIcon ArrowSync24}" Margin="0,0,8,0" />
+                                <ui:Button Appearance="Primary" Command="{Binding InstallCommand}"
+                                           Content="{loc:Text updates.install}" Icon="{ui:SymbolIcon ArrowDownload24}"
+                                           Visibility="{Binding IsAvailable, Converter={StaticResource BoolToVisibility}}" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                <ItemsControl ItemsSource="{Binding Entries}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource SoftCard}" Margin="0,0,0,12" Padding="22,18">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                        <TextBlock Text="{Binding Title}" FontSize="20" FontWeight="Bold"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                        <Border Background="{DynamicResource SystemAccentColorPrimaryBrush}"
+                                                CornerRadius="6" Padding="8,2" Margin="10,2,0,0" VerticalAlignment="Center"
+                                                Visibility="{Binding IsLatest, Converter={StaticResource BoolToVisibility}}">
+                                            <TextBlock Text="{loc:Text updates.latest}" FontSize="11" Foreground="White" />
+                                        </Border>
+                                        <TextBlock Text="{Binding Date}" FontSize="12.5" VerticalAlignment="Center"
+                                                   Margin="12,2,0,0"
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                    </StackPanel>
+
+                                    <ItemsControl ItemsSource="{Binding Changes}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,0,0,7">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Ellipse Grid.Column="0" Width="5" Height="5" Margin="2,8,12,0"
+                                                             VerticalAlignment="Top"
+                                                             Fill="{DynamicResource SystemAccentColorPrimaryBrush}" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding}" FontSize="13.5"
+                                                               TextWrapping="Wrap" LineHeight="19"
+                                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </DataTemplate>
+
+    <!-- ===== Файл ответов (autounattend.xml) ===== -->
+
+    <DataTemplate DataType="{x:Type vm:FormSection}">
+        <Border Style="{StaticResource SoftCard}" Margin="0,0,0,12" Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel>
+                <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,10" />
+                <TextBlock Text="{Binding Description}" Style="{StaticResource UaDesc}" Margin="0,-4,0,10"
+                           Visibility="{Binding Description, Converter={StaticResource NullToVisibility}}" />
+                <ItemsControl ItemsSource="{Binding Items}" />
+            </StackPanel>
+        </Border>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:FormGroup}">
+        <StackPanel Margin="0,6,0,6" Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}}">
+            <TextBlock Text="{Binding Title}" Style="{StaticResource UaSubTitle}" Margin="0,0,0,4" />
+            <TextBlock Text="{Binding Description}" Style="{StaticResource UaDesc}" Margin="0,0,0,6"
+                       Visibility="{Binding Description, Converter={StaticResource NullToVisibility}}" />
+            <ItemsControl ItemsSource="{Binding Items}" Margin="0,4,0,0" />
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:FormNote}">
+        <TextBlock Text="{Binding Description}" Style="{StaticResource UaDesc}" Margin="0,0,0,10"
+                   Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}}" />
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:FormToggle}">
+        <StackPanel Margin="0,0,0,8" Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}}">
+            <CheckBox IsChecked="{Binding IsOn}" VerticalContentAlignment="Center">
+                <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontSize="13.5" />
+            </CheckBox>
+            <TextBlock Text="{Binding Description}" Style="{StaticResource UaDesc}" Margin="30,0,0,0"
+                       Visibility="{Binding Description, Converter={StaticResource NullToVisibility}}" />
+            <ItemsControl ItemsSource="{Binding Items}" Margin="30,8,0,0">
+                <ItemsControl.Visibility>
+                    <MultiBinding Converter="{StaticResource AllTrueToVisibility}">
+                        <Binding Path="IsOn" />
+                        <Binding Path="HasItems" />
+                    </MultiBinding>
+                </ItemsControl.Visibility>
+            </ItemsControl>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:FormToggleList}">
+        <ItemsControl ItemsSource="{Binding Items}" Margin="0,0,0,4" Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <CheckBox Content="{Binding Title}" IsChecked="{Binding IsOn}" Margin="0,0,18,4" MinWidth="230" Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}}" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:FormAppList}">
+        <StackPanel Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <ui:Button Appearance="Secondary" Command="{Binding SelectAllCommand}"
+                           Content="{loc:Text ua.apps.all}" Margin="0,0,8,0" />
+                <ui:Button Appearance="Secondary" Command="{Binding ClearAllCommand}"
+                           Content="{loc:Text ua.apps.none}" />
+            </StackPanel>
+            <ItemsControl ItemsSource="{Binding Items}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <CheckBox Content="{Binding Title}" IsChecked="{Binding IsOn}" Margin="0,0,18,4" MinWidth="230" Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:FormChoice}">
+        <StackPanel Margin="0,0,0,6" Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}}">
+            <TextBlock Text="{Binding Title}" Style="{StaticResource UaSubTitle}" Margin="0,0,0,6"
+                       Visibility="{Binding Title, Converter={StaticResource NullToVisibility}}" />
+            <ItemsControl ItemsSource="{Binding Options}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Margin="0,0,0,6">
+                            <RadioButton IsChecked="{Binding IsSelected}" GroupName="{Binding GroupName}"
+                                         VerticalContentAlignment="Center">
+                                <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontSize="13.5" />
+                            </RadioButton>
+                            <TextBlock Text="{Binding Description}" Style="{StaticResource UaDesc}" Margin="30,0,0,0"
+                                       Visibility="{Binding Description, Converter={StaticResource NullToVisibility}}" />
+                            <ItemsControl ItemsSource="{Binding Items}" Margin="30,8,0,0">
+                                <ItemsControl.Visibility>
+                                    <MultiBinding Converter="{StaticResource AllTrueToVisibility}">
+                                        <Binding Path="IsSelected" />
+                                        <Binding Path="HasItems" />
+                                    </MultiBinding>
+                                </ItemsControl.Visibility>
+                            </ItemsControl>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:FormSelect}">
+        <StackPanel Margin="0,0,0,10" Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="230" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding Title}" Style="{StaticResource UaLabel}" />
+                <ComboBox Grid.Column="1" ItemsSource="{Binding Options}" SelectedItem="{Binding Selected}"
+                          DisplayMemberPath="Title" HorizontalAlignment="Left" MinWidth="320" MaxWidth="520" />
+            </Grid>
+            <TextBlock Text="{Binding Description}" Style="{StaticResource UaDesc}" Margin="0,4,0,0"
+                       Visibility="{Binding Description, Converter={StaticResource NullToVisibility}}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:FormText}">
+        <StackPanel Margin="0,0,0,10" Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}}">
+            <Grid Visibility="{Binding Multiline, Converter={StaticResource InvertBoolToVisibility}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="230" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding Title}" Style="{StaticResource UaLabel}" />
+                <ui:TextBox Grid.Column="1" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}"
+                            PlaceholderText="{Binding Placeholder}"
+                            HorizontalAlignment="Left" MinWidth="320" MaxWidth="520" />
+            </Grid>
+            <StackPanel Visibility="{Binding Multiline, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="{Binding Title}" Style="{StaticResource UaLabel}" Margin="0,0,0,6" />
+                <TextBox Style="{StaticResource UaCode}" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
+            <TextBlock Text="{Binding Description}" Style="{StaticResource UaDesc}" Margin="0,4,0,0"
+                       Visibility="{Binding Description, Converter={StaticResource NullToVisibility}}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:FormAccounts}">
+        <StackPanel Margin="0,0,0,8" Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}}">
+            <Grid Margin="0,0,0,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="170" />
+                    <ColumnDefinition Width="170" />
+                    <ColumnDefinition Width="150" />
+                    <ColumnDefinition Width="180" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding NameHeader}" Style="{StaticResource UaDesc}" />
+                <TextBlock Grid.Column="1" Text="{Binding DisplayNameHeader}" Style="{StaticResource UaDesc}" />
+                <TextBlock Grid.Column="2" Text="{Binding PasswordHeader}" Style="{StaticResource UaDesc}" />
+                <TextBlock Grid.Column="3" Text="{Binding GroupHeader}" Style="{StaticResource UaDesc}" />
+            </Grid>
+            <ItemsControl ItemsSource="{Binding Rows}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="0,0,0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="170" />
+                                <ColumnDefinition Width="170" />
+                                <ColumnDefinition Width="150" />
+                                <ColumnDefinition Width="180" />
+                            </Grid.ColumnDefinitions>
+                            <ui:TextBox Grid.Column="0" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0" MaxLength="20" />
+                            <ui:TextBox Grid.Column="1" Text="{Binding DisplayName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0" />
+                            <ui:TextBox Grid.Column="2" Text="{Binding Password, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0" />
+                            <ComboBox Grid.Column="3" ItemsSource="{Binding Groups}" SelectedItem="{Binding Group}"
+                                      DisplayMemberPath="Title" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Text="{Binding Description}" Style="{StaticResource UaDesc}" Margin="0,2,0,0" />
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:FormScripts}">
+        <StackPanel Margin="0,6,0,6" Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}}">
+            <TextBlock Text="{Binding Title}" Style="{StaticResource UaSubTitle}" Margin="0,0,0,4" />
+            <TextBlock Text="{Binding Description}" Style="{StaticResource UaDesc}" Margin="0,0,0,8" />
+            <ItemsControl ItemsSource="{Binding Rows}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Margin="0,0,0,10">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBlock Text="{Binding Title}" Style="{StaticResource UaLabel}" />
+                                <ComboBox ItemsSource="{Binding Types}" SelectedItem="{Binding Type}"
+                                          DisplayMemberPath="Title" MinWidth="110" />
+                            </StackPanel>
+                            <TextBox Style="{StaticResource UaCode}" MinHeight="80"
+                                     Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:FormComponents}">
+        <StackPanel Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}}">
+            <TextBlock Text="{Binding Description}" Style="{StaticResource UaDesc}" Margin="0,0,0,10" />
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                <TextBlock Text="{Binding Title}" Style="{StaticResource UaLabel}" />
+                <ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding Selected}"
+                          DisplayMemberPath="Title" MinWidth="420" />
+            </StackPanel>
+            <TextBox Style="{StaticResource UaCode}" Text="{Binding Xml, UpdateSourceTrigger=PropertyChanged}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:UnattendViewModel}">
+        <ctrl:UnattendPage />
+    </DataTemplate>
+
+    <!-- ===== Настройки ===== -->
+    <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="4,0,10,0">
+            <StackPanel Margin="4">
+                <TextBlock Text="{loc:Text settings.title}" Style="{StaticResource PageTitle}" Margin="0,0,0,20" />
+
+                <Border Style="{StaticResource SoftCard}" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="{loc:Text settings.theme}" FontSize="15" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,10" />
+                        <ComboBox SelectedIndex="{Binding SelectedThemeIndex}" MinWidth="240" HorizontalAlignment="Left">
+                            <ComboBoxItem Content="{loc:Text settings.theme.system}" />
+                            <ComboBoxItem Content="{loc:Text settings.theme.light}" />
+                            <ComboBoxItem Content="{loc:Text settings.theme.dark}" />
+                        </ComboBox>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource SoftCard}" Margin="0,0,0,12">
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="{loc:Text settings.language}" FontSize="15" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBlock FontSize="13" Margin="0,4,0,0"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                                <Run Text="Русский" /><Run Text="  /  " /><Run Text="English" />
+                            </TextBlock>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <TextBlock Text="RU" VerticalAlignment="Center" Margin="0,0,8,0"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <ui:ToggleSwitch IsChecked="{Binding IsEnglish}" />
+                            <TextBlock Text="EN" VerticalAlignment="Center" Margin="8,0,0,0"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource SoftCard}" Margin="0,0,0,12">
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="{loc:Text settings.animation}" FontSize="15" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBlock Text="{loc:Text settings.animation.desc}" FontSize="13" Margin="0,4,0,0"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ui:ToggleSwitch IsChecked="{Binding ShowSplash}" HorizontalAlignment="Right"
+                                         VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource SoftCard}" Margin="0,0,0,12">
+                    <Grid>
+                        <StackPanel Margin="0,0,180,0">
+                            <TextBlock Text="{loc:Text restore.title}" FontSize="15" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBlock Text="{loc:Text restore.desc}" FontSize="13" Margin="0,4,0,0"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding RestorePointStatus}" FontSize="12.5" Margin="0,6,0,0" TextWrapping="Wrap"
+                                       Visibility="{Binding RestorePointStatus, Converter={StaticResource NullToVisibility}}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#2FA65A" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding RestorePointFailed}" Value="True">
+                                                <Setter Property="Foreground" Value="#E0483E" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsCreatingRestorePoint}" Value="True">
+                                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                        <ui:Button Content="{loc:Text restore.create}" Appearance="Primary" HorizontalAlignment="Right"
+                                   VerticalAlignment="Center" Command="{Binding CreateRestorePointCommand}"
+                                   Icon="{ui:SymbolIcon History24}"
+                                   IsEnabled="{Binding IsCreatingRestorePoint, Converter={StaticResource InvertBool}}" />
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource SoftCard}">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:Button Content="{loc:Text settings.openLogs}" Appearance="Secondary"
+                                   Command="{Binding OpenLogsCommand}" Margin="0,0,10,0"
+                                   Icon="{ui:SymbolIcon DocumentText24}" />
+                        <ui:Button Content="{loc:Text settings.openBackups}" Appearance="Secondary"
+                                   Command="{Binding OpenBackupsCommand}" Icon="{ui:SymbolIcon FolderArrowUp24}" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </DataTemplate>
+</ResourceDictionary>
