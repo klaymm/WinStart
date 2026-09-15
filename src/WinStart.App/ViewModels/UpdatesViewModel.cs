@@ -11,7 +11,8 @@ public sealed class ChangelogEntry
 {
     public required string Title { get; init; }
     public required string Date { get; init; }
-    public bool IsLatest { get; init; }
+    public bool IsCurrent { get; init; }
+    public bool IsNew { get; init; }
     public required IReadOnlyList<string> Changes { get; init; }
 }
 
@@ -21,6 +22,7 @@ public sealed partial class UpdatesViewModel : ObservableObject
 {
     private static readonly (string Version, DateTime Date, int Count)[] Releases =
     [
+        ("1.1.6", new DateTime(2026, 9, 16), 1),
         ("1.1.5", new DateTime(2026, 9, 15), 3),
         ("1.1.4", new DateTime(2026, 9, 15), 9),
         ("1.1.3", new DateTime(2026, 9, 15), 5),
@@ -48,6 +50,8 @@ public sealed partial class UpdatesViewModel : ObservableObject
 
     [ObservableProperty] private IReadOnlyList<ChangelogEntry> _entries = [];
 
+    private IReadOnlyList<ReleaseNotes> _newer = [];
+
     [ObservableProperty] private UpdateState _state = UpdateState.Idle;
     [ObservableProperty] private UpdateInfo? _available;
     [ObservableProperty] private string? _statusText;
@@ -57,7 +61,6 @@ public sealed partial class UpdatesViewModel : ObservableObject
     public bool IsBusyState => State is UpdateState.Checking or UpdateState.Downloading;
     public bool IsError => State == UpdateState.Error;
     public string AvailableTitle => Available is null ? "" : _loc.Format("updates.available", Available.Version.ToString(3));
-    public string AvailableNotes => Available?.Notes.Trim() ?? "";
 
     partial void OnStateChanged(UpdateState value)
     {
@@ -71,7 +74,6 @@ public sealed partial class UpdatesViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(IsAvailable));
         OnPropertyChanged(nameof(AvailableTitle));
-        OnPropertyChanged(nameof(AvailableNotes));
         InstallCommand.NotifyCanExecuteChanged();
     }
 
@@ -84,7 +86,7 @@ public sealed partial class UpdatesViewModel : ObservableObject
         StatusText = _loc["updates.checking"];
         try
         {
-            Available = await _updates.CheckAsync(CancellationToken.None);
+            Apply(await _updates.CheckAsync(CancellationToken.None));
             State = Available is null ? UpdateState.UpToDate : UpdateState.Available;
             StatusText = Available is null ? _loc["updates.upToDate"] : null;
         }
@@ -100,10 +102,17 @@ public sealed partial class UpdatesViewModel : ObservableObject
         if (State != UpdateState.Idle) return;
         try
         {
-            Available = await _updates.CheckAsync(CancellationToken.None);
+            Apply(await _updates.CheckAsync(CancellationToken.None));
             State = Available is null ? UpdateState.Idle : UpdateState.Available;
         }
         catch { State = UpdateState.Idle; }
+    }
+
+    private void Apply(UpdateCheck check)
+    {
+        Available = check.Update;
+        _newer = check.Newer;
+        BuildEntries();
     }
 
     private bool CanInstall() => IsAvailable && !IsBusyState;
@@ -142,14 +151,33 @@ public sealed partial class UpdatesViewModel : ObservableObject
         BuildEntries();
     }
 
-    private void BuildEntries() =>
-        Entries = Releases.Select((release, index) => new ChangelogEntry
+    private void BuildEntries()
+    {
+        var current = UpdateService.CurrentVersion;
+
+        var newer = _newer.Select(release => new ChangelogEntry
+        {
+            Title = _loc.Format("updates.version", release.Version.ToString(3)),
+            Date = FormatDate(release.Date),
+            IsNew = true,
+            Changes = _loc.Language == "en" && release.En.Count > 0 ? release.En
+                : release.Ru.Count > 0 ? release.Ru
+                : release.En
+        });
+
+        var installed = Releases.Select(release => new ChangelogEntry
         {
             Title = _loc.Format("updates.version", release.Version),
-            Date = release.Date.ToString("d MMMM yyyy", CultureInfo.CurrentUICulture),
-            IsLatest = index == 0,
+            Date = FormatDate(release.Date),
+            IsCurrent = Version.TryParse(release.Version, out var v)
+                        && new Version(v.Major, v.Minor, Math.Max(v.Build, 0), 0) == current,
             Changes = Enumerable.Range(1, release.Count)
                 .Select(n => _loc[$"changelog.{release.Version}.{n}"])
                 .ToList()
-        }).ToList();
+        });
+
+        Entries = newer.Concat(installed).ToList();
+    }
+
+    private static string FormatDate(DateTime date) => date.ToString("d MMMM yyyy", CultureInfo.CurrentUICulture);
 }
