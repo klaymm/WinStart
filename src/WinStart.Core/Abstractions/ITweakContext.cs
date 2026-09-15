@@ -20,6 +20,8 @@ public interface ITweakContext
 
     void Progress(string? status, double? percent = null);
 
+    void Result(string message, bool hasIssues);
+
     void Backup(string path, string? name);
 
     Task BackupKeyAsync(string path, CancellationToken ct);
