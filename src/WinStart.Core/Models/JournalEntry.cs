@@ -18,6 +18,7 @@ public sealed class JournalEntry
     public string? Option { get; set; }
 
     public string? Message { get; set; }
+    public bool HasIssues { get; set; }
     public List<string> Log { get; set; } = [];
 
     public List<RegistryValueSnapshot> RegistrySnapshots { get; set; } = [];

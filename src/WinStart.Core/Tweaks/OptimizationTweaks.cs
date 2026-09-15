@@ -187,8 +187,9 @@ internal static class OptimizationTweaks
         {
             ctx.Progress(ctx.Text("log.sfc"), null);
             var r = await ctx.Process.RunAsync("sfc.exe", "/scannow", ct, timeoutMs: 3_600_000).ConfigureAwait(false);
-            LogTail(ctx, r);
-            ctx.Progress(ctx.Text(r.Ok ? "log.checkDone" : "log.checkIssues"), 100);
+            var (verdict, details) = Verdict(LogTail(ctx, r));
+            ctx.Progress(null, 100);
+            ctx.Result(verdict ?? ctx.Text(r.Ok ? "log.checkDone" : "log.checkIssues"), !r.Ok || details > 0);
         }
     };
 
@@ -206,8 +207,9 @@ internal static class OptimizationTweaks
             ctx.Progress(ctx.Text("log.dismRestore"), null);
             var r = await ctx.Process.RunAsync("dism.exe", "/Online /Cleanup-Image /RestoreHealth", ct, timeoutMs: 3_600_000)
                 .ConfigureAwait(false);
-            LogTail(ctx, r);
-            ctx.Progress(ctx.Text(r.Ok ? "log.checkDone" : "log.checkIssues"), 100);
+            var (verdict, _) = Verdict(LogTail(ctx, r));
+            ctx.Progress(null, 100);
+            ctx.Result(verdict ?? ctx.Text(r.Ok ? "log.checkDone" : "log.checkIssues"), !r.Ok);
         }
     };
 
@@ -225,17 +227,33 @@ internal static class OptimizationTweaks
             ctx.Progress(ctx.Text("log.chkdsk", drive), null);
             var r = await ctx.Process.RunAsync("chkdsk.exe", $"{drive} /scan", ct, timeoutMs: 3_600_000).ConfigureAwait(false);
             LogTail(ctx, r);
-            ctx.Progress(ctx.Text(r.Ok ? "log.checkDone" : "log.checkIssues"), 100);
+            ctx.Progress(null, 100);
+            switch (r.ExitCode)
+            {
+                case 0 or 2: ctx.Result(ctx.Text("result.chkdsk.ok", drive), false); break;
+                case 1: ctx.Result(ctx.Text("result.chkdsk.fixed", drive), false); break;
+                default: ctx.Result(ctx.Text("result.chkdsk.issues", drive), true); break;
+            }
         }
     };
 
-    private static void LogTail(ITweakContext ctx, ProcessResult r)
+    private static List<string> LogTail(ITweakContext ctx, ProcessResult r)
     {
         var lines = (r.StdOut + "\n" + r.StdErr).Replace("\0", "")
-            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Where(l => l.Any(char.IsLetter))
+            .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .ToList();
-        foreach (var line in lines.TakeLast(25)) ctx.Log(line);
+        foreach (var line in lines.Where(l => l.Any(char.IsLetter) && !l.Contains('%')).TakeLast(25)) ctx.Log(line);
         ctx.Log($"exit code {r.ExitCode}");
+        return lines;
+    }
+
+    private static (string? Verdict, int Details) Verdict(List<string> lines)
+    {
+        var lastProgress = lines.FindLastIndex(l => l.Contains('%'));
+        var text = lines.Where(l => l.Any(char.IsLetter) && !l.Contains('%')).ToList();
+        if (lastProgress < 0) return (text.LastOrDefault(), 0);
+
+        var tail = lines.Skip(lastProgress + 1).Where(l => l.Any(char.IsLetter)).ToList();
+        return (tail.FirstOrDefault(), Math.Max(0, tail.Count - 1));
     }
 }

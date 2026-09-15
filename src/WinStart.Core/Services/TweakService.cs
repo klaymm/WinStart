@@ -311,6 +311,8 @@ public sealed class TweakService : ITweakService
         }
 
         entry.Status = TweakStatus.Success;
+        entry.Message = ctx.ResultMessage;
+        entry.HasIssues = ctx.ResultHasIssues;
         entry.Log = ctx.Lines;
         entry.RegistrySnapshots = ctx.Snapshots;
         entry.KeyBackups = ctx.KeyBackups;
