@@ -1,0 +1,12 @@
+# Build
+bin/
+obj/
+build/publish/
+build/dist/
+
+src/WinStart.Installer/Payload/
+
+# IDE
+.vs/
+*.user
+*.suo
