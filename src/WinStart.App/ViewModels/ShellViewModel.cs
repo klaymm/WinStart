@@ -156,6 +156,8 @@ public sealed partial class ShellViewModel : ObservableObject
             () => _services.GetRequiredService<ProgramsViewModel>(), _loc));
         TopItems.Insert(afterApps + 1, new NavItemViewModel("nav.startup", SymbolRegular.Rocket24,
             () => _services.GetRequiredService<StartupViewModel>(), _loc));
+        TopItems.Insert(afterApps + 2, new NavItemViewModel("nav.network", SymbolRegular.Globe24,
+            () => _services.GetRequiredService<NetworkViewModel>(), _loc));
 
         TopItems.Add(new NavItemViewModel("nav.journal", SymbolRegular.History24,
             () => _services.GetRequiredService<JournalViewModel>(), _loc));
@@ -201,6 +203,9 @@ public sealed partial class ShellViewModel : ObservableObject
             case StartupViewModel startup when !startup.IsLoaded:
                 _ = startup.LoadAsync();
                 break;
+            case NetworkViewModel network when !network.IsLoaded:
+                _ = network.LoadAsync();
+                break;
             case JournalViewModel journal:
                 journal.Reload();
                 break;
@@ -228,6 +233,7 @@ public sealed partial class ShellViewModel : ObservableObject
                 case UpdatesViewModel u: u.RefreshTexts(); break;
                 case ProgramsViewModel p: p.RefreshTexts(); break;
                 case StartupViewModel st: st.RefreshTexts(); break;
+                case NetworkViewModel net: net.RefreshTexts(); break;
                 case UnattendViewModel n: n.RefreshTexts(); break;
             }
         }

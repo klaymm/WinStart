@@ -7,6 +7,18 @@ public sealed class DiskInfo
     public long FreeBytes { get; init; }
 }
 
+/// <summary>Подробности о компьютере, которые собираются только для отчёта.</summary>
+public sealed class ReportDetails
+{
+    public string Motherboard { get; init; } = "";
+    public string Bios { get; init; } = "";
+    public IReadOnlyList<string> Drives { get; init; } = [];
+    public IReadOnlyList<string> Monitors { get; init; } = [];
+    public IReadOnlyList<string> IpAddresses { get; init; } = [];
+    public string ComputerName { get; init; } = Environment.MachineName;
+    public string AccountName { get; init; } = Environment.UserName;
+}
+
 public sealed class SystemSummary
 {
     public string UserName { get; init; } = Environment.UserName;

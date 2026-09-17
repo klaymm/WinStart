@@ -61,6 +61,7 @@ public partial class App : Application
         services.AddSingleton<ITweakService, TweakService>();
         services.AddSingleton<IRestorePointService, RestorePointService>();
         services.AddSingleton<IWingetService, WingetService>();
+        services.AddSingleton<INetworkService, NetworkService>();
         services.AddSingleton<WinStart.Core.Unattend.IImageCheckService, WinStart.Core.Unattend.ImageCheckService>();
         services.AddSingleton<WinStart.Core.Startup.IStartupService, WinStart.Core.Startup.StartupService>();
         services.AddSingleton<TweakRegistry>();
@@ -82,6 +83,7 @@ public partial class App : Application
         services.AddSingleton<UnattendViewModel>();
         services.AddSingleton<ProgramsViewModel>();
         services.AddSingleton<StartupViewModel>();
+        services.AddSingleton<NetworkViewModel>();
         services.AddTransient<CategoryPageViewModel>();
         services.AddSingleton(sp => new SettingsViewModel(
             sp.GetRequiredService<IThemeService>(),

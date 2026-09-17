@@ -513,6 +513,123 @@
         </Grid>
     </DataTemplate>
 
+    <!-- ===== Сеть ===== -->
+    <DataTemplate DataType="{x:Type vm:NetworkViewModel}">
+        <Grid Margin="4">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="4,0,4,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                    <TextBlock Text="{Binding Title}" Style="{StaticResource PageTitle}" />
+                    <TextBlock Text="{Binding Subtitle}" Style="{StaticResource CardSubtle}" Margin="0,4,0,0" />
+                </StackPanel>
+                <ui:Button Grid.Column="1" Appearance="Secondary" Command="{Binding ReloadCommand}" VerticalAlignment="Center"
+                           Content="{loc:Text network.refresh}" Icon="{ui:SymbolIcon ArrowSync24}" />
+            </Grid>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="4,0,10,0">
+                <StackPanel>
+                    <Border Style="{StaticResource SoftCard}" Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="{loc:Text network.adapter}" Style="{StaticResource UaSubTitle}" Margin="0,0,0,8" />
+                            <ComboBox ItemsSource="{Binding Adapters}" SelectedItem="{Binding SelectedAdapter}"
+                                      HorizontalAlignment="Left" MinWidth="420" MaxWidth="620">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse Width="8" Height="8" Margin="0,0,10,0" VerticalAlignment="Center">
+                                                <Ellipse.Style>
+                                                    <Style TargetType="Ellipse">
+                                                        <Setter Property="Fill" Value="{DynamicResource TextFillColorDisabledBrush}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsUp}" Value="True">
+                                                                <Setter Property="Fill" Value="#2FA65A" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding Description}" Margin="10,0,0,0" TextTrimming="CharacterEllipsis"
+                                                       MaxWidth="360" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+
+                            <Grid Margin="0,12,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Text network.current.v4}"
+                                           Style="{StaticResource UaDesc}" Margin="0,0,12,4" />
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding CurrentIpv4}" Style="{StaticResource UaDesc}"
+                                           Margin="0,0,0,4" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Text network.current.v6}"
+                                           Style="{StaticResource UaDesc}" Margin="0,0,12,0" />
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding CurrentIpv6}" Style="{StaticResource UaDesc}"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource SoftCard}" Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="{loc:Text network.dns.title}" Style="{StaticResource UaSubTitle}" Margin="0,0,0,4" />
+                            <TextBlock Text="{loc:Text network.dns.desc}" Style="{StaticResource UaDesc}" Margin="0,0,0,10" />
+                            <ItemsControl ItemsSource="{Binding Providers}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <RadioButton GroupName="DnsProvider" Margin="0,0,0,10" VerticalContentAlignment="Center"
+                                                     IsChecked="{Binding IsSelected, Mode=TwoWay}">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Title}" FontSize="13.5" />
+                                                <TextBlock Text="{Binding Servers}" Style="{StaticResource UaDesc}" Margin="0,2,0,0" />
+                                            </StackPanel>
+                                        </RadioButton>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ui:Button Appearance="Primary" Command="{Binding ApplyCommand}" HorizontalAlignment="Left"
+                                       Content="{loc:Text network.apply}" Icon="{ui:SymbolIcon Checkmark24}" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="6,8,6,0"
+                        Visibility="{Binding StatusText, Converter={StaticResource NullToVisibility}}">
+                <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" Margin="0,0,8,0"
+                                 Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
+                <TextBlock Text="{Binding StatusText}" FontSize="12.5" TextWrapping="Wrap" VerticalAlignment="Center">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding StatusIsError}" Value="True">
+                                    <Setter Property="Foreground" Value="#E0483E" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+        </Grid>
+    </DataTemplate>
+
     <!-- ===== Журнал ===== -->
     <DataTemplate DataType="{x:Type vm:JournalViewModel}">
         <Grid Margin="4">

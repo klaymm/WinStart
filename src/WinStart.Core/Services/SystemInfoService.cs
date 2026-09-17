@@ -10,6 +10,9 @@ public interface ISystemInfoService
     int Build { get; }
 
     Task<SystemSummary> GetSummaryAsync(CancellationToken ct);
+
+    /// <summary>Материнская плата, BIOS, накопители, мониторы и адреса — только для отчёта.</summary>
+    Task<ReportDetails> GetReportDetailsAsync(CancellationToken ct);
 }
 
 public sealed class SystemInfoService : ISystemInfoService
@@ -34,6 +37,81 @@ public sealed class SystemInfoService : ISystemInfoService
     private bool IsWindows11 => Build >= 22000;
 
     public Task<SystemSummary> GetSummaryAsync(CancellationToken ct) => _summary.Value.WaitAsync(ct);
+
+    public Task<ReportDetails> GetReportDetailsAsync(CancellationToken ct) => Task.Run(CollectReportDetails, ct);
+
+    private static ReportDetails CollectReportDetails() => new()
+    {
+        Motherboard = Clean($"{GetWmiString("Win32_BaseBoard", null, "Manufacturer")} " +
+                            $"{GetWmiString("Win32_BaseBoard", null, "Product")}"),
+        Bios = Clean($"{GetWmiString("Win32_BIOS", null, "Manufacturer")} " +
+                     $"{GetWmiString("Win32_BIOS", null, "SMBIOSBIOSVersion")}"),
+        Drives = GetDriveModels(),
+        Monitors = GetWmiList("Win32_PnPEntity", "PNPClass='Monitor'", "Name"),
+        IpAddresses = GetIpAddresses()
+    };
+
+    private static List<string> GetDriveModels()
+    {
+        var drives = new List<string>();
+        try
+        {
+            using var searcher = new ManagementObjectSearcher("SELECT Model, Size FROM Win32_DiskDrive");
+            foreach (var o in searcher.Get().Cast<ManagementObject>())
+            {
+                var model = Clean(o["Model"]?.ToString());
+                if (model.Length == 0) continue;
+
+                var bytes = Convert.ToDouble(o["Size"] ?? 0d, CultureInfo.InvariantCulture);
+                drives.Add(bytes > 0
+                    ? $"{model} ({(bytes / 1024 / 1024 / 1024):0} GB)"
+                    : model);
+            }
+        }
+        catch { }
+
+        return drives;
+    }
+
+    private static List<string> GetIpAddresses()
+    {
+        var addresses = new List<string>();
+        try
+        {
+            foreach (var adapter in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (adapter.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up) continue;
+                if (adapter.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Loopback) continue;
+
+                foreach (var ip in adapter.GetIPProperties().UnicastAddresses)
+                {
+                    if (ip.Address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) continue;
+                    addresses.Add($"{ip.Address} ({adapter.Name})");
+                }
+            }
+        }
+        catch { }
+
+        return addresses;
+    }
+
+    private static List<string> GetWmiList(string wmiClass, string? where, string property)
+    {
+        var values = new List<string>();
+        try
+        {
+            var query = $"SELECT {property} FROM {wmiClass}" + (where is null ? "" : $" WHERE {where}");
+            using var searcher = new ManagementObjectSearcher(query);
+            foreach (var o in searcher.Get().Cast<ManagementObject>())
+            {
+                var value = Clean(o[property]?.ToString());
+                if (value.Length > 0 && !values.Contains(value)) values.Add(value);
+            }
+        }
+        catch { }
+
+        return values;
+    }
 
     private static string GetUserDisplayName()
     {
