@@ -58,7 +58,7 @@ public sealed partial class HomeViewModel : ObservableObject
     [ObservableProperty] private string? _reportStatus;
 
     [RelayCommand]
-    private void SaveReport()
+    private async Task SaveReportAsync()
     {
         if (Summary is null) return;
 
@@ -89,6 +89,18 @@ public sealed partial class HomeViewModel : ObservableObject
             foreach (var d in s.Disks)
                 lines.Add($"{_loc.Format("home.drive", d.Name)}: {FormatGb(d.TotalBytes)}, {_loc.Format("home.free", FormatGb(d.FreeBytes))}");
             lines.Add($"{_loc["home.uptime"]}: {FormatUptime(_loc, s.Uptime)}");
+
+            ReportStatus = _loc["home.report.collecting"];
+            var details = await _systemInfo.GetReportDetailsAsync(CancellationToken.None);
+
+            lines.Add("");
+            lines.Add($"{_loc["report.computer"]}: {details.ComputerName}");
+            lines.Add($"{_loc["report.account"]}: {details.AccountName}");
+            if (details.Motherboard.Length > 0) lines.Add($"{_loc["report.motherboard"]}: {details.Motherboard}");
+            if (details.Bios.Length > 0) lines.Add($"{_loc["report.bios"]}: {details.Bios}");
+            foreach (var drive in details.Drives) lines.Add($"{_loc["report.drive"]}: {drive}");
+            foreach (var monitor in details.Monitors) lines.Add($"{_loc["report.monitor"]}: {monitor}");
+            foreach (var ip in details.IpAddresses) lines.Add($"{_loc["report.ip"]}: {ip}");
 
             System.IO.File.WriteAllLines(dialog.FileName, lines);
             ReportStatus = _loc.Format("home.report.saved", dialog.FileName);

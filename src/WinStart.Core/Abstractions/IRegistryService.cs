@@ -8,6 +8,8 @@ public interface IRegistryService
     bool KeyExists(string path);
     bool ValueExists(string path, string? name);
 
+    IReadOnlyList<string> SubKeys(string path);
+
     object? GetValue(string path, string? name);
     string? GetString(string path, string? name);
     int? GetInt(string path, string? name);

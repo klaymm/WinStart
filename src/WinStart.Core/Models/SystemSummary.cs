@@ -7,6 +7,17 @@ public sealed class DiskInfo
     public long FreeBytes { get; init; }
 }
 
+public sealed class ReportDetails
+{
+    public string Motherboard { get; init; } = "";
+    public string Bios { get; init; } = "";
+    public IReadOnlyList<string> Drives { get; init; } = [];
+    public IReadOnlyList<string> Monitors { get; init; } = [];
+    public IReadOnlyList<string> IpAddresses { get; init; } = [];
+    public string ComputerName { get; init; } = Environment.MachineName;
+    public string AccountName { get; init; } = Environment.UserName;
+}
+
 public sealed class SystemSummary
 {
     public string UserName { get; init; } = Environment.UserName;
