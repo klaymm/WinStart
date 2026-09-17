@@ -60,6 +60,16 @@ public sealed class RegistryService : IRegistryService
         catch { return false; }
     }
 
+    public IReadOnlyList<string> SubKeys(string path)
+    {
+        try
+        {
+            using var key = Open(path, false);
+            return key is null ? [] : key.GetSubKeyNames();
+        }
+        catch { return []; }
+    }
+
     public object? GetValue(string path, string? name)
     {
         try

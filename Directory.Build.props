@@ -5,9 +5,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Product>WinStart</Product>
     <Company>WinStart</Company>
-    <Version>1.1.6</Version>
-    <FileVersion>1.1.6.0</FileVersion>
-    <AssemblyVersion>1.1.6.0</AssemblyVersion>
+    <Version>1.1.7</Version>
+    <FileVersion>1.1.7.0</FileVersion>
+    <AssemblyVersion>1.1.7.0</AssemblyVersion>
     <InformationalVersion>$(Version)+build.$([System.DateTime]::UtcNow.ToString(yyyyMMdd))</InformationalVersion>
     <Copyright>WinStart</Copyright>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
