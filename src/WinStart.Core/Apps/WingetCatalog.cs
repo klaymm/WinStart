@@ -46,5 +46,5 @@ public static class WingetCatalog
     public static WingetApp? ById(string id) => Apps.FirstOrDefault(a => a.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
 
     public static string InstallArguments(string id) =>
-        $"install --id {id} --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity";
+        $"install --id {id} --exact --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity";
 }
