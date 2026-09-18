@@ -79,7 +79,7 @@ public sealed partial class ShellViewModel : ObservableObject
         _ = LoadProfileAsync();
     }
 
-    // ---- Поиск по всей программе (поле над меню) ----
+    // ---- Поиск по всей программе ----
     [ObservableProperty] private string _searchText = "";
 
     public bool IsSearching => CurrentContent == _search;
@@ -112,7 +112,7 @@ public sealed partial class ShellViewModel : ObservableObject
 
     [ObservableProperty] private object? _currentContent;
 
-    // ---- Профиль (левый нижний угол) ----
+    // ---- Профиль ----
     [ObservableProperty] private string _profileName = Environment.UserName;
     [ObservableProperty] private string _profileRole = "";
     [ObservableProperty] private string _profileInitial = "?";

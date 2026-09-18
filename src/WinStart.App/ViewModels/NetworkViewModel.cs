@@ -42,7 +42,6 @@ public sealed class DnsProviderViewModel(DnsProvider provider, ILocalizationServ
     }
 }
 
-/// <summary>Раздел «Сеть»: выбор DNS-серверов для одного выбранного адаптера (IPv4 и IPv6).</summary>
 public sealed partial class NetworkViewModel : ObservableObject
 {
     private readonly INetworkService _network;

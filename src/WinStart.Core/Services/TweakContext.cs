@@ -41,6 +41,7 @@ public sealed class TweakRunContext : ITweakContext
     public IPathProvider Paths { get; }
     public string? Option { get; }
     public bool Extended { get; }
+    public bool RestoredFromBackup { get; set; }
 
     public List<string> Lines { get; } = [];
     public List<RegistryValueSnapshot> Snapshots { get; } = [];

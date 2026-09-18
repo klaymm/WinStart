@@ -6,7 +6,7 @@
                     xmlns:inf="clr-namespace:WinStart.App.Infrastructure"
                     xmlns:loc="clr-namespace:WinStart.App.Infrastructure">
 
-    <!-- ===== Конвертеры (единые экземпляры) ===== -->
+    <!-- ===== Конвертеры ===== -->
     <inf:BoolToVisibilityConverter x:Key="BoolToVisibility" />
     <inf:InvertBoolToVisibilityConverter x:Key="InvertBoolToVisibility" />
     <inf:InvertBoolConverter x:Key="InvertBool" />
@@ -172,12 +172,21 @@
                     <TextBlock Text="{Binding Count}" Style="{StaticResource CardSubtle}" Margin="0,4,0,0" />
                 </StackPanel>
 
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
-                            Visibility="{Binding HasSelection, Converter={StaticResource BoolToVisibility}}">
-                    <ui:Button Appearance="Secondary" Command="{Binding ClearSelectionCommand}"
-                               Content="{loc:Text section.clearSelection}" Margin="0,0,8,0" />
-                    <ui:Button Appearance="Primary" Command="{Binding ApplySelectedCommand}"
-                               Content="{Binding ApplySelectedText}" Icon="{ui:SymbolIcon Checkmark24}" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,12,0"
+                                Visibility="{Binding BatchStatus, Converter={StaticResource NullToVisibility}}">
+                        <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" Margin="0,0,8,0" />
+                        <TextBlock Text="{Binding BatchStatus}" FontSize="12.5" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
+                                Visibility="{Binding HasSelection, Converter={StaticResource BoolToVisibility}}">
+                        <ui:Button Appearance="Secondary" Command="{Binding ClearSelectionCommand}"
+                                   Content="{loc:Text section.clearSelection}" Margin="0,0,8,0" />
+                        <ui:Button Appearance="Primary" Command="{Binding ApplySelectedCommand}"
+                                   Content="{Binding ApplySelectedText}" Icon="{ui:SymbolIcon Checkmark24}" />
+                    </StackPanel>
                 </StackPanel>
             </Grid>
 
@@ -381,7 +390,7 @@
         </Grid>
     </DataTemplate>
 
-    <!-- ===== Автозагрузка (по образцу Autoruns) ===== -->
+    <!-- ===== Автозагрузка ===== -->
     <DataTemplate DataType="{x:Type vm:StartupEntryViewModel}">
         <Border Padding="12,10" Margin="0,0,0,6" CornerRadius="8"
                 Background="{DynamicResource SubtleFillColorSecondaryBrush}">

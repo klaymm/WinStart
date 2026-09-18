@@ -14,10 +14,8 @@ public sealed record NetworkAdapter(int Index, string Name, string Description, 
 
 public interface INetworkService
 {
-    /// <summary>Сетевые адаптеры с их текущими DNS-серверами.</summary>
     Task<IReadOnlyList<NetworkAdapter>> GetAdaptersAsync(CancellationToken ct);
 
-    /// <summary>Прописывает DNS выбранного поставщика (IPv4 и IPv6) одному адаптеру. <c>null</c> — успех.</summary>
     Task<string?> SetDnsAsync(NetworkAdapter adapter, DnsProvider provider, CancellationToken ct);
 }
 
@@ -92,7 +90,6 @@ public sealed class NetworkService(IProcessRunner process) : INetworkService
         return error.Length == 0 ? $"exit code {r.ExitCode}" : error.Split('\n')[0].Trim();
     }
 
-    /// <summary>Windows всегда перечисляет свои служебные IPv6-адреса — для пользователя это «получены автоматически».</summary>
     private static string WithoutDefaults(string servers) =>
         string.Join(", ", servers
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)

@@ -46,6 +46,12 @@ public partial class App : Application
         _ = _services.GetRequiredService<UpdatesViewModel>().CheckSilentlyAsync();
     }
 
+    protected override void OnExit(ExitEventArgs e)
+    {
+        _services?.GetService<ITweakService>()?.FlushPendingExplorerRestart();
+        base.OnExit(e);
+    }
+
     private IServiceProvider BuildServices()
     {
         var services = new ServiceCollection();

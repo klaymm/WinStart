@@ -34,6 +34,10 @@ public sealed class TweakDefinition
 
     public bool SupportsShiftOption { get; init; }
 
+    public string? ExtendedOptionKey { get; init; }
+
+    public bool ExtendedNeedsExplorerRestart { get; init; }
+
     public IReadOnlyList<RegistryAction> RegistryActions { get; init; } = [];
 
     public IReadOnlyList<RegistryAction> RevertActions { get; init; } = [];

@@ -47,11 +47,14 @@ public sealed partial class TweakCardViewModel : ObservableObject
     public bool IsAction => Definition.Kind == TweakKind.Action;
     public bool HasOptions => Definition.Options.Count > 0;
     public IReadOnlyList<TweakOption> Options => Definition.Options;
-    public bool SupportsShift => Definition.SupportsShiftOption;
+    public bool SupportsShift => Definition.SupportsShiftOption || Definition.ExtendedOptionKey is not null;
+    public string ExtendedOptionText => _loc[Definition.ExtendedOptionKey ?? "card.shiftOption"];
+    public bool ShowExtendedOption => SupportsShift && ShowApply;
 
     public string ActionVerb => _loc[Definition.ActionVerbKey ?? "card.apply"];
 
-    public bool NeedsExplorer => Definition.NeedsExplorerRestart;
+    public bool NeedsExplorer => Definition.NeedsExplorerRestart
+                                 || (Definition.ExtendedNeedsExplorerRestart && ShiftExtended);
     public bool IsDestructive => Definition.Destructive;
 
     [ObservableProperty] private TweakState _state = TweakState.Unknown;
@@ -90,11 +93,14 @@ public sealed partial class TweakCardViewModel : ObservableObject
         OnPropertyChanged(nameof(StateText));
         OnPropertyChanged(nameof(ShowRevert));
         OnPropertyChanged(nameof(ShowApply));
+        OnPropertyChanged(nameof(ShowExtendedOption));
         OnPropertyChanged(nameof(IsSelectable));
         OnPropertyChanged(nameof(CanInteract));
         ApplyCommand.NotifyCanExecuteChanged();
         RevertCommand.NotifyCanExecuteChanged();
     }
+
+    partial void OnShiftExtendedChanged(bool value) => OnPropertyChanged(nameof(NeedsExplorer));
 
     partial void OnIsBusyChanged(bool value)
     {
@@ -109,6 +115,7 @@ public sealed partial class TweakCardViewModel : ObservableObject
         OnPropertyChanged(nameof(Title));
         OnPropertyChanged(nameof(Description));
         OnPropertyChanged(nameof(ActionVerb));
+        OnPropertyChanged(nameof(ExtendedOptionText));
         OnPropertyChanged(nameof(StateText));
     }
 

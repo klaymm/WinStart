@@ -283,7 +283,6 @@ internal static class OptimizationTweaks
         }
     };
 
-    /// <summary>Порог, выше которого службы не разделяются на отдельные процессы: объём памяти с запасом.</summary>
     private static async Task<int> TotalMemoryKbAsync(ITweakContext ctx, CancellationToken ct)
     {
         var r = await ctx.Process.PowerShellAsync(

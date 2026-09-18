@@ -785,7 +785,7 @@ public sealed partial class UnattendViewModel : ObservableObject
             })
         ]);
 
-        // ---- Установка программ после установки Windows (дополнение WinStart) ----
+        // ---- Установка программ после установки Windows ----
         _wingetToggles = WinStart.Core.Apps.WingetCatalog.Apps
             .Select(a => Toggle(a.Name, () => s.WingetApps.Contains(a.Id),
                 v => { if (v) s.WingetApps.Add(a.Id); else s.WingetApps.Remove(a.Id); }))

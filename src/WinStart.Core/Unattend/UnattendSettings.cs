@@ -247,7 +247,7 @@ public sealed class UnattendSettings
     // ---- Удаление приложений ----
     public HashSet<string> Bloatware { get; set; } = new(DefaultBloatware, StringComparer.Ordinal);
 
-    // ---- Установка программ после установки Windows (winget; дополнение WinStart) ----
+    // ---- Установка программ после установки Windows ----
     public HashSet<string> WingetApps { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     // ---- Свои скрипты ----

@@ -7,7 +7,6 @@ public sealed class DiskInfo
     public long FreeBytes { get; init; }
 }
 
-/// <summary>Подробности о компьютере, которые собираются только для отчёта.</summary>
 public sealed class ReportDetails
 {
     public string Motherboard { get; init; } = "";

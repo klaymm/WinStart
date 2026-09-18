@@ -16,6 +16,10 @@ public interface ITweakService
         Action<string?, double?>? progress, CancellationToken ct);
 
     Task<bool> RevertEntryAsync(JournalEntry entry, CancellationToken ct);
+
+    Task RunBatchAsync(Func<Task> body, Action<string?>? status);
+
+    void FlushPendingExplorerRestart();
 }
 
 public sealed class TweakService : ITweakService
@@ -29,6 +33,8 @@ public sealed class TweakService : ITweakService
     private readonly IJournalService _journal;
     private readonly ILocalizationService _loc;
     private readonly TweakRegistry _tweaks;
+    private int _batchDepth;
+    private int _explorerPending;
 
     public TweakService(
         IRegistryService registry,
@@ -106,7 +112,7 @@ public sealed class TweakService : ITweakService
         Action<string?, double?>? progress, CancellationToken ct)
     {
         var ctx = CreateContext(def, option, extended, progress);
-        var entry = NewEntry(def, TweakDirection.Apply, option);
+        var entry = NewEntry(def, TweakDirection.Apply, option, extended);
 
         try
         {
@@ -152,7 +158,7 @@ public sealed class TweakService : ITweakService
 
     public Task<JournalEntry> RevertAsync(TweakDefinition def,
         Action<string?, double?>? progress, CancellationToken ct)
-        => RevertCoreAsync(def, _journal.FindLastApply(def.Id), progress, ct);
+        => RevertCoreAsync(def, _journal.FindActiveApplies(def.Id), progress, ct);
 
     public async Task<bool> RevertEntryAsync(JournalEntry entry, CancellationToken ct)
     {
@@ -161,23 +167,38 @@ public sealed class TweakService : ITweakService
         var def = _tweaks.ById(entry.TweakId)
                   ?? new TweakDefinition { Id = entry.TweakId, Category = entry.Category };
 
-        var result = await RevertCoreAsync(def, entry, null, ct).ConfigureAwait(false);
+        List<JournalEntry> applied = def.Kind == TweakKind.Action
+            ? [entry]
+            : _journal.FindActiveApplies(entry.TweakId)
+                .Where(e => e.Id != entry.Id)
+                .Append(entry)
+                .OrderByDescending(e => e.Timestamp)
+                .ToList();
+
+        var result = await RevertCoreAsync(def, applied, null, ct).ConfigureAwait(false);
         return result.Status == TweakStatus.Success;
     }
 
-    private async Task<JournalEntry> RevertCoreAsync(TweakDefinition def, JournalEntry? applied,
+    private async Task<JournalEntry> RevertCoreAsync(TweakDefinition def, IReadOnlyList<JournalEntry> applied,
         Action<string?, double?>? progress, CancellationToken ct)
     {
-        var ctx = CreateContext(def, applied?.Option, false, progress);
-        var entry = NewEntry(def, TweakDirection.Revert, applied?.Option);
+        var latest = applied.Count > 0 ? applied[0] : null;
+        var ctx = CreateContext(def, latest?.Option, applied.Any(e => e.Extended), progress);
+        var entry = NewEntry(def, TweakDirection.Revert, latest?.Option, false);
         entry.Reversible = false;
 
         try
         {
-            if (applied is not null && HasBackup(applied))
+            var backups = applied.Where(HasBackup).ToList();
+            ctx.RestoredFromBackup = backups.Count > 0;
+            if (backups.Count > 0)
             {
-                ctx.Log(_loc["log.restoreFromBackup"]);
-                await RestoreFromEntryAsync(applied, ctx, ct).ConfigureAwait(false);
+                ctx.Log(backups.Count == 1
+                    ? _loc["log.restoreFromBackup"]
+                    : _loc.Format("log.restoreFromBackups", backups.Count));
+
+                foreach (var backup in backups)
+                    await RestoreFromEntryAsync(backup, ctx, ct).ConfigureAwait(false);
             }
             else if (def.RevertActions.Count > 0)
             {
@@ -202,10 +223,10 @@ public sealed class TweakService : ITweakService
             if (def.CustomRevert is not null)
                 await def.CustomRevert(ctx, ct).ConfigureAwait(false);
 
-            if (applied is not null)
+            foreach (var item in applied)
             {
-                applied.Reverted = true;
-                await _journal.UpdateAsync(applied).ConfigureAwait(false);
+                item.Reverted = true;
+                await _journal.UpdateAsync(item).ConfigureAwait(false);
             }
 
             await FinishAsync(def, ctx, entry, ct).ConfigureAwait(false);
@@ -254,6 +275,46 @@ public sealed class TweakService : ITweakService
         _ => null
     };
 
+    // ----------------------------------------------------------------- Batch
+
+    public async Task RunBatchAsync(Func<Task> body, Action<string?>? status)
+    {
+        Interlocked.Increment(ref _batchDepth);
+        try
+        {
+            await body().ConfigureAwait(false);
+        }
+        finally
+        {
+            if (Interlocked.Decrement(ref _batchDepth) == 0 && Interlocked.Exchange(ref _explorerPending, 0) == 1)
+            {
+                status?.Invoke(_loc["log.explorerRestart"]);
+                try { await RestartExplorerAsync(CancellationToken.None).ConfigureAwait(false); }
+                catch { }
+                status?.Invoke(null);
+            }
+        }
+    }
+
+    public void FlushPendingExplorerRestart()
+    {
+        if (Interlocked.Exchange(ref _explorerPending, 0) != 1) return;
+        try { RestartExplorerAsync(CancellationToken.None).GetAwaiter().GetResult(); }
+        catch { }
+    }
+
+    private bool DeferExplorerRestart()
+    {
+        if (Volatile.Read(ref _batchDepth) == 0 || !ExplorerRunning())
+        {
+            Interlocked.Exchange(ref _explorerPending, 0);
+            return false;
+        }
+
+        Interlocked.Exchange(ref _explorerPending, 1);
+        return Volatile.Read(ref _batchDepth) > 0 || Interlocked.Exchange(ref _explorerPending, 0) == 0;
+    }
+
     // -------------------------------------------------------------- Helpers
 
     private static async Task SnapshotAsync(TweakRunContext ctx, RegistryAction action, CancellationToken ct)
@@ -292,13 +353,15 @@ public sealed class TweakService : ITweakService
         ? Convert.ToHexString((byte[])action.Value!)
         : action.Value?.ToString() ?? "";
 
-    private static JournalEntry NewEntry(TweakDefinition def, TweakDirection direction, string? option) => new()
+    private static JournalEntry NewEntry(TweakDefinition def, TweakDirection direction, string? option,
+        bool extended) => new()
     {
         TweakId = def.Id,
         TitleKey = def.TitleKey,
         Category = def.Category,
         Direction = direction,
         Option = option,
+        Extended = extended,
         Reversible = def.Reversible
     };
 
@@ -306,8 +369,15 @@ public sealed class TweakService : ITweakService
     {
         if (def.NeedsExplorerRestart || ctx.ExplorerRestartRequested)
         {
-            ctx.Progress(_loc["log.explorerRestart"]);
-            await RestartExplorerAsync(ct).ConfigureAwait(false);
+            if (DeferExplorerRestart())
+            {
+                ctx.Log(_loc["log.explorerRestartDeferred"]);
+            }
+            else
+            {
+                ctx.Progress(_loc["log.explorerRestart"]);
+                await RestartExplorerAsync(ct).ConfigureAwait(false);
+            }
         }
 
         entry.Status = TweakStatus.Success;
@@ -357,12 +427,19 @@ public sealed class TweakService : ITweakService
 
         await ClearIconCacheAsync(ct).ConfigureAwait(false);
 
-        if (System.Diagnostics.Process.GetProcessesByName("explorer").Length == 0)
+        if (!ExplorerRunning())
         {
             var explorer = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe");
             await _process.LaunchAsync(explorer, "", false, ct).ConfigureAwait(false);
         }
+    }
+
+    private static bool ExplorerRunning()
+    {
+        var processes = System.Diagnostics.Process.GetProcessesByName("explorer");
+        foreach (var process in processes) process.Dispose();
+        return processes.Length > 0;
     }
 
     private async Task ClearIconCacheAsync(CancellationToken ct)
