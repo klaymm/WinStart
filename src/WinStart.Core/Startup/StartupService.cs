@@ -196,7 +196,7 @@ public sealed class StartupService(IProcessRunner process) : IStartupService
         }
     }
 
-    // ---------------------------------------------------------------- Winlogon (только чтение)
+    // ---------------------------------------------------------------- Winlogon
 
     private static void ScanWinlogon(List<StartupEntry> list)
     {

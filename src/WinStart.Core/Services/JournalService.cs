@@ -113,7 +113,7 @@ public sealed class JournalService : IJournalService
         finally { _gate.Release(); }
     }
 
-    public JournalEntry? FindLastApply(string tweakId)
+    public IReadOnlyList<JournalEntry> FindActiveApplies(string tweakId)
     {
         lock (_entries)
         {
@@ -123,7 +123,7 @@ public sealed class JournalService : IJournalService
                             && e.Status == TweakStatus.Success
                             && !e.Reverted)
                 .OrderByDescending(e => e.Timestamp)
-                .FirstOrDefault();
+                .ToList();
         }
     }
 }

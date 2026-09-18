@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WinStart.App.Services;
@@ -32,6 +33,8 @@ public sealed partial class CategoryPageViewModel : ObservableObject
     }
 
     public ObservableCollection<TweakCardViewModel> Cards { get; } = [];
+
+    [ObservableProperty] private string? _batchStatus;
 
     public string Title => _loc[_titleKey];
     public string Count => _loc.Plural("section.count", Cards.Count);
@@ -74,18 +77,22 @@ public sealed partial class CategoryPageViewModel : ObservableObject
     private async Task ApplySelectedAsync()
     {
         var selected = Cards.Where(c => c.IsSelected).ToList();
-        if (selected.Count == 0) return;
+        if (selected.Count == 0 || _busy.IsBusy) return;
 
         var ok = await _dialogs.ConfirmAsync(
             _loc["dialog.applySelected.title"],
             _loc.Format("dialog.applySelected.text", selected.Count));
-        if (!ok) return;
+        if (!ok || _busy.IsBusy) return;
 
-        foreach (var card in selected)
+        using var _ = _busy.Begin();
+        await _tweaks.RunBatchAsync(async () =>
         {
-            card.IsSelected = false;
-            await card.ToggleForBatchAsync();
-        }
+            foreach (var card in selected)
+            {
+                card.IsSelected = false;
+                await card.ToggleForBatchAsync();
+            }
+        }, status => Application.Current?.Dispatcher.Invoke(() => BatchStatus = status));
     }
 
     [RelayCommand]

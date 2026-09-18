@@ -11,7 +11,6 @@ public interface ISystemInfoService
 
     Task<SystemSummary> GetSummaryAsync(CancellationToken ct);
 
-    /// <summary>Материнская плата, BIOS, накопители, мониторы и адреса — только для отчёта.</summary>
     Task<ReportDetails> GetReportDetailsAsync(CancellationToken ct);
 }
 

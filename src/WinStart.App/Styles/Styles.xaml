@@ -2,7 +2,7 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
 
-    <!-- ===== Пункт левого меню (иконка + подпись) ===== -->
+    <!-- ===== Пункт левого меню ===== -->
     <Style x:Key="NavItemButton" TargetType="ToggleButton">
         <Setter Property="Height" Value="42" />
         <Setter Property="Margin" Value="8,2" />
@@ -128,7 +128,7 @@
         </Setter>
     </Style>
 
-    <!-- ===== Мягкая карточка: скруглённая, лёгкая заливка ===== -->
+    <!-- ===== Мягкая карточка ===== -->
     <Style x:Key="SoftCard" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />

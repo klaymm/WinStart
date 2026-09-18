@@ -121,10 +121,10 @@
                     </ComboBox.ItemTemplate>
                 </ComboBox>
 
-                <CheckBox Content="{loc:Text card.shiftOption}" IsChecked="{Binding ShiftExtended}"
+                <CheckBox Content="{Binding ExtendedOptionText}" IsChecked="{Binding ShiftExtended}"
                           HorizontalAlignment="Right" Margin="0,0,0,8"
                           IsEnabled="{Binding CanInteract}"
-                          Visibility="{Binding SupportsShift, Converter={StaticResource BoolToVisibility}}" />
+                          Visibility="{Binding ShowExtendedOption, Converter={StaticResource BoolToVisibility}}" />
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <ui:Button Content="{loc:Text card.cancel}" Command="{Binding CancelCommand}"
