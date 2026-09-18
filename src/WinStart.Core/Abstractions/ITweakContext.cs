@@ -14,6 +14,8 @@ public interface ITweakContext
 
     bool Extended { get; }
 
+    bool RestoredFromBackup { get; }
+
     string Text(string key, params object[] args);
 
     void Log(string message);

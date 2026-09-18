@@ -1,6 +1,5 @@
 ﻿Add-Type -AssemblyName PresentationFramework
 
-# Останавливаем ненужные процессы
 "msedgewebview2.exe","Widgets.exe","WidgetService.exe","WebViewHost.exe" | ForEach-Object {
     Stop-Process -Name ($_ -replace '.exe','') -Force -ErrorAction SilentlyContinue 
 }
@@ -33,7 +32,6 @@ function RefreshAppList {
     $stackPanel.ColumnDefinitions.Clear()
     $displayNameMap.Clear()
 
-    # --- Добавляем OneDrive и Remote Desktop ---
     if (Test-Path "$env:SystemRoot\System32\OneDriveSetup.exe") {
         $displayNameMap['OneDrive'] = @{ Name='OneDrive' }
     }
@@ -56,7 +54,6 @@ function RefreshAppList {
         $displayNameMap[$displayName] = $app
     }
 	
-	    # --- Если приложений нет ---
     if ($displayNameMap.Count -eq 0) {
         $textBlock = New-Object System.Windows.Controls.TextBlock -Property @{
             Text = "Все приложения удалены"
@@ -158,7 +155,6 @@ function RefreshAppList {
         }
     }
 
-    # Восстанавливаем состояние чекбоксов
     foreach ($child in $stackPanel.Children) {
         $appName = $child.Content.Text
         if ($previousSelection.ContainsKey($appName)) {
@@ -170,7 +166,6 @@ function RefreshAppList {
 
     UpdateSelectAllButtonText
 	
-	# --- Центрируем окно после изменения размера ---
 	$window.UpdateLayout()
 	[System.Windows.Threading.Dispatcher]::CurrentDispatcher.Invoke([action]{
 		$window.Left = ([System.Windows.SystemParameters]::PrimaryScreenWidth - $window.ActualWidth) / 2
@@ -178,11 +173,9 @@ function RefreshAppList {
 	}, [System.Windows.Threading.DispatcherPriority]::Background)
 }
 
-# Цвета
 $darkGrayColor = [System.Windows.Media.Color]::FromRgb(34,34,34)
 $darkGrayBrush = New-Object System.Windows.Media.SolidColorBrush($darkGrayColor)
 
-# Окно
 $window = New-Object System.Windows.Window -Property @{
     Title = 'Выберите приложения для удаления'
     SizeToContent = 'WidthAndHeight'
@@ -192,7 +185,6 @@ $window = New-Object System.Windows.Window -Property @{
     Foreground = [System.Windows.Media.Brushes]::White
 }
 
-# Стиль кнопок
 $buttonStyleXaml = @"
 <Style TargetType='Button' xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'>
   <Setter Property='Margin' Value='10'/>
@@ -281,7 +273,6 @@ if ($allChecked) {
 	$window.Close()
 	Start-Process $Helper -ArgumentList '/Overlay "Удаление всех предустановленных приложений" /Font "Impact" /Size 40' -WindowStyle Hidden
 
-    # Удаляем Appx-приложения
     Get-AppxPackage | Where-Object { $_.NonRemovable -eq $false } |
         ForEach-Object { Remove-AppxPackage -Package $_.PackageFullName -AllUsers -ErrorAction SilentlyContinue }
 
@@ -322,7 +313,6 @@ if ($allChecked) {
     return
 }
 
-    # Удаляем выбранные
     $selectedAppsToDelete = @()
     foreach ($child in $stackPanel.Children) {
         if ($child.IsChecked) {

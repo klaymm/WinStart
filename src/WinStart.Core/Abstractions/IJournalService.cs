@@ -13,5 +13,5 @@ public interface IJournalService
     Task ClearAsync();
     string HistoryFile { get; }
 
-    JournalEntry? FindLastApply(string tweakId);
+    IReadOnlyList<JournalEntry> FindActiveApplies(string tweakId);
 }

@@ -4,6 +4,7 @@ obj/
 build/publish/
 build/dist/
 
+# Installer payload
 src/WinStart.Installer/Payload/
 
 # IDE

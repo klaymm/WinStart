@@ -1,5 +1,7 @@
+using Microsoft.Win32;
 using WinStart.Core.Abstractions;
 using WinStart.Core.Models;
+using WinStart.Core.Services;
 
 namespace WinStart.Core.Tweaks;
 
@@ -19,8 +21,16 @@ internal static class MiscTweaks
     private const string ErrorReportingPolicy = @"HKLM\Software\Policies\Microsoft\Windows\Windows Error Reporting";
     private const string InputPersonalization = @"HKCU\Software\Microsoft\InputPersonalization";
     private const string AutoLoggers = @"HKLM\System\CurrentControlSet\Control\WMI\Autologger";
+    private const string SiufRules = @"HKCU\Software\Microsoft\Siuf\Rules";
+    private const string MachineEnvironment = @"HKLM\System\CurrentControlSet\Control\Session Manager\Environment";
+    private const string DefenderService = @"HKLM\System\CurrentControlSet\Services\WinDefend";
 
-    private static readonly string[] TelemetryServices = ["DiagTrack", "dmwappushservice"];
+    private static readonly (string Name, string RevertStart)[] TelemetryServices =
+    [
+        ("DiagTrack", "auto"),
+        ("dmwappushservice", "demand"),
+        ("WerSvc", "demand")
+    ];
 
     private static readonly string[] TelemetryTasks =
     [
@@ -86,6 +96,8 @@ internal static class MiscTweaks
         Id = "misc.telemetry",
         Category = TweakCategory.Misc,
         Order = 3,
+        ExtendedOptionKey = "option.telemetry.appLaunches",
+        ExtendedNeedsExplorerRestart = true,
         RegistryActions =
         [
             RegistryAction.Set(DataCollectionPolicy, "AllowTelemetry", 0),
@@ -117,19 +129,36 @@ internal static class MiscTweaks
             RegistryAction.Set(@"HKLM\Software\Policies\Microsoft\Windows\AdvertisingInfo", "DisabledByGroupPolicy", 1),
             RegistryAction.Set(@"HKCU\Software\Policies\Microsoft\Windows\CloudContent",
                 "DisableTailoredExperiencesWithDiagnosticData", 1),
+            RegistryAction.Set(@"HKCU\Software\Microsoft\Windows\CurrentVersion\Privacy",
+                "TailoredExperiencesWithDiagnosticDataEnabled", 0),
 
             RegistryAction.Set(InputPersonalization, "RestrictImplicitTextCollection", 1),
             RegistryAction.Set(InputPersonalization, "RestrictImplicitInkCollection", 1),
             RegistryAction.Set($@"{InputPersonalization}\TrainedDataStore", "HarvestContacts", 0),
+            RegistryAction.Set(@"HKCU\Software\Microsoft\Input\TIPC", "Enabled", 0),
+            RegistryAction.Set(@"HKCU\Software\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy", "HasAccepted", 0),
             RegistryAction.Set(@"HKCU\Software\Microsoft\Personalization\Settings", "AcceptedPrivacyPolicy", 0),
-            RegistryAction.Set(@"HKCU\Software\Microsoft\Siuf\Rules", "NumberOfSIUFInPeriod", 0),
+            RegistryAction.Set(SiufRules, "NumberOfSIUFInPeriod", 0),
+            RegistryAction.DeleteValue(SiufRules, "PeriodInNanoSeconds"),
 
             RegistryAction.Set($@"{AutoLoggers}\AutoLogger-Diagtrack-Listener", "Start", 0),
-            RegistryAction.Set($@"{AutoLoggers}\SQMLogger", "Start", 0)
+            RegistryAction.Set($@"{AutoLoggers}\SQMLogger", "Start", 0),
+
+            RegistryAction.SetString(MachineEnvironment, "POWERSHELL_TELEMETRY_OPTOUT", "1")
         ],
         CustomApply = async (ctx, ct) =>
         {
-            foreach (var service in TelemetryServices)
+            NativeMethods.BroadcastSettingChange("Environment");
+
+            if (ctx.Extended)
+            {
+                ctx.Backup(Advanced, "Start_TrackProgs");
+                ctx.Registry.SetValue(Advanced, "Start_TrackProgs", 0, RegistryValueKind.DWord);
+                ctx.Log($@"set  {Advanced}\Start_TrackProgs = 0");
+                ctx.RequestExplorerRestart();
+            }
+
+            foreach (var (service, _) in TelemetryServices)
             {
                 ctx.Progress(ctx.Text("log.serviceOff", service), null);
                 await ctx.Process.CmdAsync($"sc stop {service}", ct, 60000).ConfigureAwait(false);
@@ -138,10 +167,24 @@ internal static class MiscTweaks
             }
 
             await ForTasksAsync(ctx, "/Disable", ct).ConfigureAwait(false);
+            await SetSampleSubmissionAsync(ctx, 2, ct).ConfigureAwait(false);
         },
         CustomRevert = async (ctx, ct) =>
         {
-            foreach (var (service, start) in TelemetryServices.Zip(new[] { "auto", "demand" }))
+            if (ctx.Extended)
+            {
+                ctx.RequestExplorerRestart();
+            }
+            else if (!ctx.RestoredFromBackup && ctx.Registry.GetInt(Advanced, "Start_TrackProgs") == 0)
+            {
+                ctx.Registry.DeleteValue(Advanced, "Start_TrackProgs");
+                ctx.Log($@"del  {Advanced}\Start_TrackProgs");
+                ctx.RequestExplorerRestart();
+            }
+
+            NativeMethods.BroadcastSettingChange("Environment");
+
+            foreach (var (service, start) in TelemetryServices)
             {
                 ctx.Progress(ctx.Text("log.serviceOn", service), null);
                 var r = await ctx.Process.CmdAsync($"sc config {service} start= {start}", ct, 60000).ConfigureAwait(false);
@@ -149,8 +192,22 @@ internal static class MiscTweaks
             }
 
             await ForTasksAsync(ctx, "/Enable", ct).ConfigureAwait(false);
+            await SetSampleSubmissionAsync(ctx, 1, ct).ConfigureAwait(false);
         }
     };
+
+    private static async Task SetSampleSubmissionAsync(ITweakContext ctx, int consent, CancellationToken ct)
+    {
+        if (!ctx.Registry.KeyExists(DefenderService))
+        {
+            ctx.Log(ctx.Text("log.defenderMissing"));
+            return;
+        }
+
+        var command = $"Set-MpPreference -SubmitSamplesConsent {consent}";
+        var r = await ctx.Process.PowerShellAsync(command, ct, 60000).ConfigureAwait(false);
+        ctx.Log($"{command} → {r.ExitCode}");
+    }
 
     private static async Task ForTasksAsync(ITweakContext ctx, string switchName, CancellationToken ct)
     {
