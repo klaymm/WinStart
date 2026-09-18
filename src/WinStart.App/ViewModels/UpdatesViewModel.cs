@@ -22,6 +22,7 @@ public sealed partial class UpdatesViewModel : ObservableObject
 {
     private static readonly (string Version, DateTime Date, int Count)[] Releases =
     [
+        ("1.1.9", new DateTime(2026, 9, 19), 3),
         ("1.1.8", new DateTime(2026, 9, 18), 4),
         ("1.1.7", new DateTime(2026, 9, 17), 5),
         ("1.1.6", new DateTime(2026, 9, 16), 1),

@@ -92,6 +92,8 @@ public sealed partial class NetworkViewModel : ObservableObject
         ApplyCommand.NotifyCanExecuteChanged();
     }
 
+    partial void OnIsBusyChanged(bool value) => ApplyCommand.NotifyCanExecuteChanged();
+
     public async Task LoadAsync()
     {
         if (IsBusy) return;
@@ -135,7 +137,6 @@ public sealed partial class NetworkViewModel : ObservableObject
 
         using var _ = _busy.Begin();
         IsBusy = true;
-        ApplyCommand.NotifyCanExecuteChanged();
         StatusIsError = false;
         StatusText = _loc.Format("network.applying", adapter.Name);
         try
@@ -143,6 +144,7 @@ public sealed partial class NetworkViewModel : ObservableObject
             var error = await _network.SetDnsAsync(adapter, SelectedProvider.Provider, CancellationToken.None);
             if (error is null)
             {
+                IsBusy = false;
                 await LoadAsync();
                 StatusIsError = false;
                 StatusText = SelectedProvider.Provider == DnsProvider.Automatic
@@ -158,7 +160,6 @@ public sealed partial class NetworkViewModel : ObservableObject
         finally
         {
             IsBusy = false;
-            ApplyCommand.NotifyCanExecuteChanged();
         }
     }
 

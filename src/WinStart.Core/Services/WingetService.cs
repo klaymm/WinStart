@@ -33,7 +33,7 @@ public sealed class WingetService(IProcessRunner process) : IWingetService
     public async Task<HashSet<string>> ListInstalledAsync(CancellationToken ct)
     {
         var installed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var r = await process.RunAsync(Winget, "list --accept-source-agreements --disable-interactivity", ct,
+        var r = await process.RunAsync(Winget, "list --source winget --accept-source-agreements --disable-interactivity", ct,
             timeoutMs: 120000).ConfigureAwait(false);
         if (!r.Ok) return installed;
 
