@@ -17,6 +17,13 @@ public sealed class Localization
         ["extracting"] = ("Распаковка файлов…", "Extracting files…"),
         ["shortcuts"] = ("Создание ярлыков…", "Creating shortcuts…"),
         ["registering"] = ("Регистрация…", "Registering…"),
+        ["replacing"] = ("Замена файлов…", "Replacing files…"),
+        ["verifying"] = ("Проверка запуска новой версии…", "Making sure the new version starts…"),
+        ["rollingBack"] = ("Возврат прошлой версии…", "Restoring the previous version…"),
+        ["rolledBack"] = ("Обновление отменено", "Update rolled back"),
+        ["rolledBackText"] = (
+            "Новая версия не смогла запуститься, поэтому WinStart вернулся к прошлой версии. Настройки и данные восстановлены.",
+            "The new version failed to start, so WinStart went back to the previous version. Settings and data were restored."),
         ["done"] = ("Установка завершена", "Installation complete"),
         ["doneText"] = ("WinStart установлен и готов к работе.", "WinStart is installed and ready to go."),
         ["run"] = ("Запустить WinStart", "Launch WinStart"),

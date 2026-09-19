@@ -17,14 +17,10 @@ public sealed class SearchLink(string title, string? subtitle, Action open)
     public IRelayCommand OpenCommand { get; } = new RelayCommand(open);
 }
 
-public sealed class SearchGroup(string title, IReadOnlyList<object> items, bool wrap = false, SearchLink? link = null)
+public sealed class SearchGroup(string title, IReadOnlyList<object> items)
 {
     public string Title { get; } = title;
     public IReadOnlyList<object> Items { get; } = items;
-
-    public bool Wrap { get; } = wrap;
-
-    public SearchLink? Link { get; } = link;
 }
 
 public sealed partial class SearchViewModel : ObservableObject
@@ -74,11 +70,11 @@ public sealed partial class SearchViewModel : ObservableObject
 
     private NavItemViewModel? Nav(string titleKey) => _navItems().FirstOrDefault(n => n.TitleKey == titleKey);
 
-    private void AddGroup(string title, List<object> items, ref int total, bool wrap = false, SearchLink? link = null)
+    private void AddGroup(string title, List<object> items, ref int total)
     {
         if (items.Count == 0) return;
         total += items.Count;
-        Groups.Add(new SearchGroup(title, items, wrap, link));
+        Groups.Add(new SearchGroup(title, items));
     }
 
     private void Run()
@@ -124,11 +120,16 @@ public sealed partial class SearchViewModel : ObservableObject
 
         var programs = _services.GetRequiredService<ProgramsViewModel>();
         var programsItem = Nav("nav.programs");
-        var apps = programs.All.Where(a => Match(a.Name) || Match(a.Id)).Cast<object>().ToList();
-        var programsLink = programsItem is null || apps.Count == 0
-            ? null
-            : new SearchLink(_loc["search.openPrograms"], _loc["search.openPrograms.desc"], () => _open(programsItem));
-        AddGroup(_loc["nav.programs"], apps, ref total, wrap: true, programsLink);
+        var apps = programs.All
+            .Where(a => Match(a.Name) || Match(a.Id) || Match(a.Description))
+            .Select(a => (object)new SearchLink(a.Name, a.IsInstalled ? $"{a.Description} · {a.InstalledText}" : a.Description, () =>
+            {
+                if (a.IsInstalled) programs.OnlyNotInstalled = false;
+                programs.Filter = a.Name;
+                if (programsItem is not null) _open(programsItem);
+            }))
+            .ToList();
+        AddGroup(_loc["nav.programs"], apps, ref total);
 
         var startup = _services.GetRequiredService<StartupViewModel>();
         var startupItem = Nav("nav.startup");
@@ -204,6 +205,7 @@ public sealed partial class SearchViewModel : ObservableObject
         ("settings.theme", null),
         ("settings.language", null),
         ("settings.animation", "settings.animation.desc"),
+        ("settings.betas", "settings.betas.desc"),
         ("restore.title", "restore.desc"),
         ("settings.openLogs", null),
         ("settings.openBackups", null)

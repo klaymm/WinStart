@@ -11,6 +11,7 @@ public sealed class AppSettings
     public AppTheme Theme { get; set; } = AppTheme.System;
     public string Language { get; set; } = "ru";
     public bool ShowSplash { get; set; } = true;
+    public bool ReceiveBetas { get; set; }
 }
 
 public interface ISettingsService

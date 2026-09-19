@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using WinStart.App.Infrastructure;
 using WinStart.App.Services;
 using WinStart.Core.Abstractions;
+using WinStart.Core.Updates;
 
 namespace WinStart.App.ViewModels;
 
@@ -22,6 +23,7 @@ public sealed partial class UpdatesViewModel : ObservableObject
 {
     private static readonly (string Version, DateTime Date, int Count)[] Releases =
     [
+        ("1.2.0", new DateTime(2026, 9, 19), 9),
         ("1.1.9", new DateTime(2026, 9, 19), 3),
         ("1.1.8", new DateTime(2026, 9, 18), 4),
         ("1.1.7", new DateTime(2026, 9, 17), 5),
@@ -38,12 +40,15 @@ public sealed partial class UpdatesViewModel : ObservableObject
     private readonly ILocalizationService _loc;
     private readonly IUpdateService _updates;
     private readonly IBusyService _busy;
+    private readonly ISettingsService _settings;
 
-    public UpdatesViewModel(ILocalizationService loc, IUpdateService updates, IBusyService busy)
+    public UpdatesViewModel(ILocalizationService loc, IUpdateService updates, IBusyService busy,
+        ISettingsService settings)
     {
         _loc = loc;
         _updates = updates;
         _busy = busy;
+        _settings = settings;
         BuildEntries();
     }
 
@@ -63,7 +68,7 @@ public sealed partial class UpdatesViewModel : ObservableObject
     public bool IsAvailable => Available is not null;
     public bool IsBusyState => State is UpdateState.Checking or UpdateState.Downloading;
     public bool IsError => State == UpdateState.Error;
-    public string AvailableTitle => Available is null ? "" : _loc.Format("updates.available", Available.Version.ToString(3));
+    public string AvailableTitle => Available is null ? "" : _loc.Format("updates.available", Available.Version.ToString());
 
     partial void OnStateChanged(UpdateState value)
     {
@@ -89,7 +94,7 @@ public sealed partial class UpdatesViewModel : ObservableObject
         StatusText = _loc["updates.checking"];
         try
         {
-            Apply(await _updates.CheckAsync(CancellationToken.None));
+            Apply(await _updates.CheckAsync(_settings.Current.ReceiveBetas, CancellationToken.None));
             State = Available is null ? UpdateState.UpToDate : UpdateState.Available;
             StatusText = Available is null ? _loc["updates.upToDate"] : null;
         }
@@ -105,7 +110,7 @@ public sealed partial class UpdatesViewModel : ObservableObject
         if (State != UpdateState.Idle) return;
         try
         {
-            Apply(await _updates.CheckAsync(CancellationToken.None));
+            Apply(await _updates.CheckAsync(_settings.Current.ReceiveBetas, CancellationToken.None));
             State = Available is null ? UpdateState.Idle : UpdateState.Available;
         }
         catch { State = UpdateState.Idle; }
@@ -138,6 +143,11 @@ public sealed partial class UpdatesViewModel : ObservableObject
             StatusText = _loc["updates.installing"];
             _updates.InstallAndExit(path);
         }
+        catch (UpdateIntegrityException)
+        {
+            State = UpdateState.Error;
+            StatusText = _loc["updates.integrity"];
+        }
         catch (Exception ex)
         {
             State = UpdateState.Error;
@@ -156,11 +166,12 @@ public sealed partial class UpdatesViewModel : ObservableObject
 
     private void BuildEntries()
     {
-        var current = UpdateService.CurrentVersion;
+        var current = AppInfo.Semantic;
 
         var newer = _newer.Select(release => new ChangelogEntry
         {
-            Title = _loc.Format("updates.version", release.Version.ToString(3)),
+            Title = _loc.Format(release.Version.IsPreRelease ? "updates.versionBeta" : "updates.version",
+                release.Version.ToString()),
             Date = FormatDate(release.Date),
             IsNew = true,
             Changes = _loc.Language == "en" && release.En.Count > 0 ? release.En
@@ -172,8 +183,7 @@ public sealed partial class UpdatesViewModel : ObservableObject
         {
             Title = _loc.Format("updates.version", release.Version),
             Date = FormatDate(release.Date),
-            IsCurrent = Version.TryParse(release.Version, out var v)
-                        && new Version(v.Major, v.Minor, Math.Max(v.Build, 0), 0) == current,
+            IsCurrent = SemVersion.TryParse(release.Version, out var v) && v == current,
             Changes = Enumerable.Range(1, release.Count)
                 .Select(n => _loc[$"changelog.{release.Version}.{n}"])
                 .ToList()

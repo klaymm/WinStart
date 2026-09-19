@@ -76,8 +76,16 @@ public sealed partial class NetworkViewModel : ObservableObject
     [ObservableProperty] private string? _statusText;
     [ObservableProperty] private bool _statusIsError;
 
+    [ObservableProperty] private bool _encryptDns = true;
+    [ObservableProperty] private bool _onlyEncrypted;
+
     public string CurrentIpv4 => SelectedAdapter is { Ipv4Dns.Length: > 0 } a ? a.Ipv4Dns : _loc["network.dns.auto"];
     public string CurrentIpv6 => SelectedAdapter is { Ipv6Dns.Length: > 0 } a ? a.Ipv6Dns : _loc["network.dns.auto"];
+    public string CurrentDoh => _loc[$"network.doh.state.{SelectedAdapter?.Doh ?? DohMode.Off}"];
+    public bool CanEncrypt => SelectedProvider.Provider != DnsProvider.Automatic;
+
+    private DohMode RequestedDoh => !CanEncrypt || !EncryptDns ? DohMode.Off
+        : OnlyEncrypted ? DohMode.Required : DohMode.Preferred;
 
     private void Select(DnsProviderViewModel provider)
     {
@@ -85,10 +93,18 @@ public sealed partial class NetworkViewModel : ObservableObject
         foreach (var p in Providers) p.SetSelected(p == provider);
     }
 
+    partial void OnSelectedProviderChanged(DnsProviderViewModel value) => OnPropertyChanged(nameof(CanEncrypt));
+
     partial void OnSelectedAdapterChanged(NetworkAdapter? value)
     {
+        if (value is { Doh: not DohMode.Off })
+        {
+            EncryptDns = true;
+            OnlyEncrypted = value.Doh == DohMode.Required;
+        }
         OnPropertyChanged(nameof(CurrentIpv4));
         OnPropertyChanged(nameof(CurrentIpv6));
+        OnPropertyChanged(nameof(CurrentDoh));
         ApplyCommand.NotifyCanExecuteChanged();
     }
 
@@ -141,7 +157,8 @@ public sealed partial class NetworkViewModel : ObservableObject
         StatusText = _loc.Format("network.applying", adapter.Name);
         try
         {
-            var error = await _network.SetDnsAsync(adapter, SelectedProvider.Provider, CancellationToken.None);
+            var doh = RequestedDoh;
+            var error = await _network.SetDnsAsync(adapter, SelectedProvider.Provider, doh, CancellationToken.None);
             if (error is null)
             {
                 IsBusy = false;
@@ -149,7 +166,8 @@ public sealed partial class NetworkViewModel : ObservableObject
                 StatusIsError = false;
                 StatusText = SelectedProvider.Provider == DnsProvider.Automatic
                     ? _loc.Format("network.reset", adapter.Name)
-                    : _loc.Format("network.applied", SelectedProvider.Title, adapter.Name);
+                    : _loc.Format(doh == DohMode.Off ? "network.applied" : "network.applied.doh",
+                        SelectedProvider.Title, adapter.Name);
             }
             else
             {
@@ -169,6 +187,7 @@ public sealed partial class NetworkViewModel : ObservableObject
         OnPropertyChanged(nameof(Subtitle));
         OnPropertyChanged(nameof(CurrentIpv4));
         OnPropertyChanged(nameof(CurrentIpv6));
+        OnPropertyChanged(nameof(CurrentDoh));
         foreach (var p in Providers) p.RefreshTexts();
     }
 }

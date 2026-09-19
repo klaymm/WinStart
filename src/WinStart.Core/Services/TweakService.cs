@@ -62,7 +62,7 @@ public sealed class TweakService : ITweakService
         Action<string?, double?>? progress)
         => new(_registry, _process, _download, _archive, _paths, _loc, def.Id, option, extended, progress);
 
-    // Detect
+    // State check
 
     public Task<TweakState> DetectAsync(TweakDefinition def, CancellationToken ct) => Task.Run(() =>
     {
@@ -186,6 +186,7 @@ public sealed class TweakService : ITweakService
         var ctx = CreateContext(def, latest?.Option, applied.Any(e => e.Extended), progress);
         var entry = NewEntry(def, TweakDirection.Revert, latest?.Option, false);
         entry.Reversible = false;
+        if (_tweaks.ById(def.Id) is null && latest is { TitleKey.Length: > 0 }) entry.TitleKey = latest.TitleKey;
 
         try
         {
@@ -275,7 +276,7 @@ public sealed class TweakService : ITweakService
         _ => null
     };
 
-    // Batch
+    // Batch apply
 
     public async Task RunBatchAsync(Func<Task> body, Action<string?>? status)
     {

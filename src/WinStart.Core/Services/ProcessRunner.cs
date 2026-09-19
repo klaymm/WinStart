@@ -78,6 +78,8 @@ public sealed class ProcessRunner : IProcessRunner
         return buffer.ToArray();
     }
 
+    public static string OemToUtf8(string text) => Encoding.UTF8.GetString(OemEncoding.GetBytes(text));
+
     private static string Decode(byte[] bytes)
     {
         if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE)
