@@ -109,12 +109,15 @@ public partial class ShellWindow : FluentWindow
     {
         var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
 
-        var move = new TranslateTransform(0, 10);
+        var cardsAnimate = DataContext is ShellViewModel { CurrentContent: CategoryPageViewModel or SearchViewModel };
+        var distance = cardsAnimate ? 0 : 10;
+
+        var move = new TranslateTransform(0, distance);
         PageHost.RenderTransform = move;
-        PageHost.CacheMode = new BitmapCache();
+        PageHost.CacheMode = cardsAnimate ? null : new BitmapCache();
         PageHost.Opacity = 0;
 
-        var slide = new DoubleAnimation(10, 0, TimeSpan.FromMilliseconds(280)) { EasingFunction = ease };
+        var slide = new DoubleAnimation(distance, 0, TimeSpan.FromMilliseconds(280)) { EasingFunction = ease };
         slide.Completed += (_, _) =>
         {
             if (ReferenceEquals(PageHost.RenderTransform, move)) PageHost.CacheMode = null;

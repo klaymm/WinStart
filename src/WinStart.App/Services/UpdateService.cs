@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using WinStart.App.Infrastructure;
 using WinStart.Core.Abstractions;
+using WinStart.Core.Services;
 using WinStart.Core.Updates;
 
 namespace WinStart.App.Services;
@@ -37,16 +38,16 @@ public sealed class UpdateService(IDownloadService download) : IUpdateService, I
         DefaultRequestHeaders = { { "User-Agent", $"WinStart/{AppInfo.Version}" }, { "Accept", "application/vnd.github+json" } }
     };
 
+    private const int Attempts = 3;
+
     public async Task<UpdateCheck> CheckAsync(bool includePreReleases, CancellationToken ct)
     {
-        using var response = await _http.GetAsync(
+        var json = await GetStringAsync(
             $"https://api.github.com/repos/{AppInfo.GitHubRepository}/releases?per_page=30", ct).ConfigureAwait(false);
-
-        if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return UpdateCheck.None;
-        response.EnsureSuccessStatusCode();
+        if (json is null) return UpdateCheck.None;
 
         var current = AppInfo.Semantic;
-        var newer = ReleaseFeed.Parse(await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false), includePreReleases)
+        var newer = ReleaseFeed.Parse(json, includePreReleases)
             .Where(r => r.Version > current)
             .ToList();
 
@@ -72,13 +73,12 @@ public sealed class UpdateService(IDownloadService download) : IUpdateService, I
         var asset = ReleaseFeed.ManifestAsset(release);
         if (asset is null) return null;
 
-        using var response = await _http.GetAsync(asset.Url, ct).ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
+        var json = await GetStringAsync(asset.Url, ct).ConfigureAwait(false);
+        if (json is null) return null;
 
         try
         {
-            return JsonSerializer.Deserialize<UpdateManifest>(
-                await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false), ReleaseFeed.JsonOptions);
+            return JsonSerializer.Deserialize<UpdateManifest>(json, ReleaseFeed.JsonOptions);
         }
         catch (JsonException)
         {
@@ -86,11 +86,28 @@ public sealed class UpdateService(IDownloadService download) : IUpdateService, I
         }
     }
 
+    private async Task<string?> GetStringAsync(string url, CancellationToken ct)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                using var response = await _http.GetAsync(url, ct).ConfigureAwait(false);
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
+                response.EnsureSuccessStatusCode();
+                return await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (attempt < Attempts && DownloadService.IsTransient(ex, ct))
+            {
+                await Task.Delay(TimeSpan.FromSeconds(attempt), ct).ConfigureAwait(false);
+            }
+        }
+    }
+
     public async Task<string> DownloadAsync(UpdateInfo info, IProgress<double> progress, CancellationToken ct)
     {
         var path = Path.Combine(Path.GetTempPath(), "WinStart", ReleaseFeed.InstallerName);
-        if (!await download.DownloadAsync([info.DownloadUrl], path, progress, ct).ConfigureAwait(false))
-            throw new IOException("download failed");
+        await download.DownloadFileAsync(info.DownloadUrl, path, progress, Attempts, ct).ConfigureAwait(false);
 
         if (info.Sha256 is not null && !await MatchesAsync(path, info.Sha256, ct).ConfigureAwait(false))
         {

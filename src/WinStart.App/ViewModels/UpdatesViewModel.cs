@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.IO;
+using System.Net.Http;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WinStart.App.Infrastructure;
@@ -23,6 +25,7 @@ public sealed partial class UpdatesViewModel : ObservableObject
 {
     private static readonly (string Version, DateTime Date, int Count)[] Releases =
     [
+        ("1.2.1-beta.1", new DateTime(2026, 9, 19), 3),
         ("1.2.0", new DateTime(2026, 9, 19), 9),
         ("1.1.9", new DateTime(2026, 9, 19), 3),
         ("1.1.8", new DateTime(2026, 9, 18), 4),
@@ -41,14 +44,16 @@ public sealed partial class UpdatesViewModel : ObservableObject
     private readonly IUpdateService _updates;
     private readonly IBusyService _busy;
     private readonly ISettingsService _settings;
+    private readonly IPathProvider _paths;
 
     public UpdatesViewModel(ILocalizationService loc, IUpdateService updates, IBusyService busy,
-        ISettingsService settings)
+        ISettingsService settings, IPathProvider paths)
     {
         _loc = loc;
         _updates = updates;
         _busy = busy;
         _settings = settings;
+        _paths = paths;
         BuildEntries();
     }
 
@@ -100,8 +105,9 @@ public sealed partial class UpdatesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            Log("check", ex);
             State = UpdateState.Error;
-            StatusText = _loc.Format("updates.checkFailed", ex.Message);
+            StatusText = _loc.Format("updates.checkFailed", Reason(ex));
         }
     }
 
@@ -113,7 +119,11 @@ public sealed partial class UpdatesViewModel : ObservableObject
             Apply(await _updates.CheckAsync(_settings.Current.ReceiveBetas, CancellationToken.None));
             State = Available is null ? UpdateState.Idle : UpdateState.Available;
         }
-        catch { State = UpdateState.Idle; }
+        catch (Exception ex)
+        {
+            Log("background check", ex);
+            State = UpdateState.Idle;
+        }
     }
 
     private void Apply(UpdateCheck check)
@@ -143,16 +153,36 @@ public sealed partial class UpdatesViewModel : ObservableObject
             StatusText = _loc["updates.installing"];
             _updates.InstallAndExit(path);
         }
-        catch (UpdateIntegrityException)
+        catch (UpdateIntegrityException ex)
         {
+            Log("download", ex);
             State = UpdateState.Error;
             StatusText = _loc["updates.integrity"];
         }
         catch (Exception ex)
         {
+            Log("download", ex);
             State = UpdateState.Error;
-            StatusText = _loc.Format("updates.downloadFailed", ex.Message);
+            StatusText = _loc.Format("updates.downloadFailed", Reason(ex));
         }
+    }
+
+    private string Reason(Exception ex) => ex switch
+    {
+        HttpRequestException { StatusCode: { } code } => $"HTTP {(int)code}",
+        TimeoutException or TaskCanceledException => _loc["updates.timeout"],
+        _ => ex.GetBaseException().Message
+    };
+
+    private void Log(string stage, Exception ex)
+    {
+        try
+        {
+            Directory.CreateDirectory(_paths.Logs);
+            File.AppendAllText(Path.Combine(_paths.Logs, "updates.log"),
+                $"{DateTime.Now:u}  v{AppInfo.Version}  {stage}{Environment.NewLine}{ex}{Environment.NewLine}{Environment.NewLine}");
+        }
+        catch { }
     }
 
     public void RefreshTexts()

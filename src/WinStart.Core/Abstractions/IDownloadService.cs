@@ -6,6 +6,9 @@ public interface IDownloadService
 
     Task<bool> DownloadAsync(IEnumerable<string> mirrors, string destination,
         IProgress<double>? progress, CancellationToken ct);
+
+    Task DownloadFileAsync(string url, string destination, IProgress<double>? progress,
+        int attempts, CancellationToken ct);
 }
 
 public interface IArchiveService
