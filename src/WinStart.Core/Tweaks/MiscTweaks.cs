@@ -51,7 +51,39 @@ internal static class MiscTweaks
         yield return DisableStickyKeys();
         yield return Recommendations();
         yield return Telemetry();
+        yield return Copilot();
+        yield return Recall();
     }
+
+    private const string WindowsAi = @"Software\Policies\Microsoft\Windows\WindowsAI";
+
+    private static TweakDefinition Copilot() => new()
+    {
+        Id = "misc.copilot",
+        Category = TweakCategory.Misc,
+        Order = 4,
+        MinBuild = 22000,
+        NeedsExplorerRestart = true,
+        RegistryActions =
+        [
+            RegistryAction.Set(@"HKCU\Software\Policies\Microsoft\Windows\WindowsCopilot", "TurnOffWindowsCopilot", 1)
+        ]
+    };
+
+    private static TweakDefinition Recall() => new()
+    {
+        Id = "misc.recall",
+        Category = TweakCategory.Misc,
+        Order = 5,
+        MinBuild = 26100,
+        RegistryActions =
+        [
+            RegistryAction.Set($@"HKLM\{WindowsAi}", "DisableAIDataAnalysis", 1),
+            RegistryAction.Set($@"HKCU\{WindowsAi}", "DisableAIDataAnalysis", 1),
+            RegistryAction.Set($@"HKLM\{WindowsAi}", "DisableClickToDo", 1),
+            RegistryAction.Set($@"HKCU\{WindowsAi}", "DisableClickToDo", 1)
+        ]
+    };
 
     private static TweakDefinition DisableStickyKeys() => new()
     {

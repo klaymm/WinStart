@@ -10,9 +10,27 @@ internal static class ContextMenuTweaks
 {
     public static IEnumerable<TweakDefinition> All()
     {
+        yield return ClassicMenu();
         yield return Unlocker();
         yield return Everything();
     }
+
+    private const string ClassicMenuKey = @"HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}";
+
+    private static TweakDefinition ClassicMenu() => new()
+    {
+        Id = "context.classicMenu",
+        Category = TweakCategory.ContextMenu,
+        Order = 0,
+        MinBuild = 22000,
+        NeedsExplorerRestart = true,
+        RegistryActions = [RegistryAction.SetString($@"{ClassicMenuKey}\InprocServer32", "", "")],
+        CustomRevert = (ctx, _) =>
+        {
+            ctx.Registry.DeleteKey(ClassicMenuKey);
+            return Task.CompletedTask;
+        }
+    };
 
     private static string Label(string ru, string en) =>
         CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ru" ? ru : en;

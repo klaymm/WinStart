@@ -1,50 +1,44 @@
+using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace WinStart.Core.Apps;
 
-public enum WingetCategory { Browsers, Messengers, Media, Archivers, Tools, Games, Office }
+public enum WingetCategory { Browsers, Messengers, Media, Office, Archivers, Tools, System, Development, Games, Server }
 
-public sealed record WingetApp(string Id, string Name, WingetCategory Category);
+public sealed class WingetApp
+{
+    public required string Id { get; init; }
+    public required string Name { get; init; }
+    public required WingetCategory Category { get; init; }
+    public string DescRu { get; init; } = "";
+    public string DescEn { get; init; } = "";
+    public IReadOnlyList<string> Exes { get; init; } = [];
+    public string Company { get; init; } = "";
+
+    public string Description(string language) => language == "ru" ? DescRu : DescEn;
+}
 
 public static class WingetCatalog
 {
-    public static IReadOnlyList<WingetApp> Apps { get; } =
-    [
-        new("Google.Chrome", "Google Chrome", WingetCategory.Browsers),
-        new("Mozilla.Firefox", "Mozilla Firefox", WingetCategory.Browsers),
-        new("Brave.Brave", "Brave", WingetCategory.Browsers),
-        new("Yandex.Browser", "Яндекс Браузер", WingetCategory.Browsers),
-        new("Opera.Opera", "Opera", WingetCategory.Browsers),
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() }
+    };
 
-        new("Telegram.TelegramDesktop", "Telegram", WingetCategory.Messengers),
-        new("Discord.Discord", "Discord", WingetCategory.Messengers),
-        new("Zoom.Zoom", "Zoom", WingetCategory.Messengers),
-
-        new("VideoLAN.VLC", "VLC media player", WingetCategory.Media),
-        new("Spotify.Spotify", "Spotify", WingetCategory.Media),
-        new("OBSProject.OBSStudio", "OBS Studio", WingetCategory.Media),
-        new("GIMP.GIMP", "GIMP", WingetCategory.Media),
-        new("dotPDNLLC.paintdotnet", "Paint.NET", WingetCategory.Media),
-
-        new("7zip.7zip", "7-Zip", WingetCategory.Archivers),
-        new("RARLab.WinRAR", "WinRAR", WingetCategory.Archivers),
-        new("qBittorrent.qBittorrent", "qBittorrent", WingetCategory.Archivers),
-
-        new("Notepad++.Notepad++", "Notepad++", WingetCategory.Tools),
-        new("Microsoft.VisualStudioCode", "Visual Studio Code", WingetCategory.Tools),
-        new("Microsoft.PowerToys", "PowerToys", WingetCategory.Tools),
-        new("voidtools.Everything", "Everything", WingetCategory.Tools),
-        new("Git.Git", "Git", WingetCategory.Tools),
-
-        new("Valve.Steam", "Steam", WingetCategory.Games),
-        new("EpicGames.EpicGamesLauncher", "Epic Games Launcher", WingetCategory.Games),
-
-        new("TheDocumentFoundation.LibreOffice", "LibreOffice", WingetCategory.Office),
-        new("ONLYOFFICE.DesktopEditors", "ONLYOFFICE", WingetCategory.Office),
-        new("SumatraPDF.SumatraPDF", "Sumatra PDF", WingetCategory.Office),
-        new("Adobe.Acrobat.Reader.64-bit", "Adobe Acrobat Reader", WingetCategory.Office)
-    ];
+    public static IReadOnlyList<WingetApp> Apps { get; } = Load();
 
     public static WingetApp? ById(string id) => Apps.FirstOrDefault(a => a.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
 
     public static string InstallArguments(string id) =>
         $"install --id {id} --exact --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity";
+
+    private static List<WingetApp> Load()
+    {
+        var asm = Assembly.GetExecutingAssembly();
+        using var stream = asm.GetManifestResourceStream("WinStart.Core.Apps.catalog.json")
+                           ?? throw new InvalidOperationException("Каталог программ не найден в ресурсах");
+        return JsonSerializer.Deserialize<List<WingetApp>>(stream, JsonOptions) ?? [];
+    }
 }

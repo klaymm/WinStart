@@ -62,7 +62,7 @@ public sealed class TweakService : ITweakService
         Action<string?, double?>? progress)
         => new(_registry, _process, _download, _archive, _paths, _loc, def.Id, option, extended, progress);
 
-    // ---------------------------------------------------------------- Detect
+    // ------------------------------------------------- Проверка состояния
 
     public Task<TweakState> DetectAsync(TweakDefinition def, CancellationToken ct) => Task.Run(() =>
     {
@@ -106,7 +106,7 @@ public sealed class TweakService : ITweakService
         };
     }
 
-    // ----------------------------------------------------------------- Apply
+    // ------------------------------------------------------------ Применение
 
     public async Task<JournalEntry> ApplyAsync(TweakDefinition def, string? option, bool extended,
         Action<string?, double?>? progress, CancellationToken ct)
@@ -154,7 +154,7 @@ public sealed class TweakService : ITweakService
         return entry;
     }
 
-    // ---------------------------------------------------------------- Revert
+    // ---------------------------------------------------------------- Отмена
 
     public Task<JournalEntry> RevertAsync(TweakDefinition def,
         Action<string?, double?>? progress, CancellationToken ct)
@@ -186,6 +186,7 @@ public sealed class TweakService : ITweakService
         var ctx = CreateContext(def, latest?.Option, applied.Any(e => e.Extended), progress);
         var entry = NewEntry(def, TweakDirection.Revert, latest?.Option, false);
         entry.Reversible = false;
+        if (_tweaks.ById(def.Id) is null && latest is { TitleKey.Length: > 0 }) entry.TitleKey = latest.TitleKey;
 
         try
         {
@@ -275,7 +276,7 @@ public sealed class TweakService : ITweakService
         _ => null
     };
 
-    // ----------------------------------------------------------------- Batch
+    // --------------------------------------------------- Пакетное применение
 
     public async Task RunBatchAsync(Func<Task> body, Action<string?>? status)
     {
@@ -315,7 +316,7 @@ public sealed class TweakService : ITweakService
         return Volatile.Read(ref _batchDepth) > 0 || Interlocked.Exchange(ref _explorerPending, 0) == 0;
     }
 
-    // -------------------------------------------------------------- Helpers
+    // ------------------------------------------------------- Вспомогательное
 
     private static async Task SnapshotAsync(TweakRunContext ctx, RegistryAction action, CancellationToken ct)
     {

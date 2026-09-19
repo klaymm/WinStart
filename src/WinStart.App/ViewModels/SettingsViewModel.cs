@@ -32,11 +32,13 @@ public sealed partial class SettingsViewModel : ObservableObject
         _selectedThemeIndex = (int)settings.Current.Theme;
         _isEnglish = settings.Current.Language == "en";
         _showSplash = settings.Current.ShowSplash;
+        _receiveBetas = settings.Current.ReceiveBetas;
     }
 
     [ObservableProperty] private int _selectedThemeIndex;
     [ObservableProperty] private bool _isEnglish;
     [ObservableProperty] private bool _showSplash;
+    [ObservableProperty] private bool _receiveBetas;
 
     [ObservableProperty] private bool _isCreatingRestorePoint;
     [ObservableProperty] private string? _restorePointStatus;
@@ -55,6 +57,12 @@ public sealed partial class SettingsViewModel : ObservableObject
     partial void OnShowSplashChanged(bool value)
     {
         _settings.Current.ShowSplash = value;
+        _settings.Save();
+    }
+
+    partial void OnReceiveBetasChanged(bool value)
+    {
+        _settings.Current.ReceiveBetas = value;
         _settings.Save();
     }
 

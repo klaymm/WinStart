@@ -8,6 +8,10 @@
     <PackageReference Include="System.Management" Version="10.0.0" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Apps\catalog.json" LogicalName="WinStart.Core.Apps.catalog.json" />
+    <EmbeddedResource Include="Audit\service-defaults.json" LogicalName="WinStart.Core.Audit.service-defaults.json" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\UnattendGenerator\UnattendGenerator.csproj" />
   </ItemGroup>
 </Project>
