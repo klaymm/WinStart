@@ -1,24 +1,28 @@
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
+using System.Security.Cryptography;
 using System.Text.Json;
 using WinStart.App.Infrastructure;
 using WinStart.Core.Abstractions;
+using WinStart.Core.Updates;
 
 namespace WinStart.App.Services;
 
-public sealed record UpdateInfo(Version Version, string DownloadUrl, long Size);
+public sealed record UpdateInfo(SemVersion Version, string DownloadUrl, long Size, string? Sha256);
 
-public sealed record ReleaseNotes(Version Version, DateTime Date, IReadOnlyList<string> Ru, IReadOnlyList<string> En);
+public sealed record ReleaseNotes(SemVersion Version, DateTime Date, IReadOnlyList<string> Ru, IReadOnlyList<string> En);
 
 public sealed record UpdateCheck(UpdateInfo? Update, IReadOnlyList<ReleaseNotes> Newer)
 {
     public static UpdateCheck None { get; } = new(null, []);
 }
 
+public sealed class UpdateIntegrityException() : Exception("SHA-256 mismatch");
+
 public interface IUpdateService
 {
-    Task<UpdateCheck> CheckAsync(CancellationToken ct);
+    Task<UpdateCheck> CheckAsync(bool includePreReleases, CancellationToken ct);
 
     Task<string> DownloadAsync(UpdateInfo info, IProgress<double> progress, CancellationToken ct);
 
@@ -27,17 +31,13 @@ public interface IUpdateService
 
 public sealed class UpdateService(IDownloadService download) : IUpdateService, IDisposable
 {
-    private const string InstallerName = "WinStartSetup.exe";
-
     private readonly HttpClient _http = new()
     {
         Timeout = TimeSpan.FromSeconds(20),
         DefaultRequestHeaders = { { "User-Agent", $"WinStart/{AppInfo.Version}" }, { "Accept", "application/vnd.github+json" } }
     };
 
-    public static Version CurrentVersion => Normalize(Version.Parse(AppInfo.Version));
-
-    public async Task<UpdateCheck> CheckAsync(CancellationToken ct)
+    public async Task<UpdateCheck> CheckAsync(bool includePreReleases, CancellationToken ct)
     {
         using var response = await _http.GetAsync(
             $"https://api.github.com/repos/{AppInfo.GitHubRepository}/releases?per_page=30", ct).ConfigureAwait(false);
@@ -45,79 +45,68 @@ public sealed class UpdateService(IDownloadService download) : IUpdateService, I
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return UpdateCheck.None;
         response.EnsureSuccessStatusCode();
 
-        return Parse(await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false), CurrentVersion);
-    }
-
-    public static UpdateCheck Parse(string json, Version current)
-    {
-        using var document = JsonDocument.Parse(json);
-        var newer = new List<ReleaseNotes>();
-        UpdateInfo? update = null;
-
-        foreach (var release in document.RootElement.EnumerateArray())
-        {
-            if (Flag(release, "draft") || Flag(release, "prerelease")) continue;
-
-            var tag = release.TryGetProperty("tag_name", out var t) ? t.GetString() ?? "" : "";
-            if (!Version.TryParse(tag.TrimStart('v', 'V'), out var parsed)) continue;
-
-            var version = Normalize(parsed);
-            if (version <= current) continue;
-
-            var date = release.TryGetProperty("published_at", out var p) && p.ValueKind == JsonValueKind.String
-                       && DateTime.TryParse(p.GetString(), null, System.Globalization.DateTimeStyles.RoundtripKind, out var d)
-                ? d.ToLocalTime()
-                : DateTime.Now;
-
-            var (ru, en) = SplitNotes(release.TryGetProperty("body", out var b) ? b.GetString() ?? "" : "");
-            newer.Add(new ReleaseNotes(version, date, ru, en));
-
-            var installer = Installer(release);
-            if (installer is not null && (update is null || version > update.Version))
-                update = new UpdateInfo(version, installer.Value.Url, installer.Value.Size);
-        }
-
-        return new UpdateCheck(update, newer.OrderByDescending(r => r.Version).ToList());
-    }
-
-    private static bool Flag(JsonElement release, string name) =>
-        release.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.True;
-
-    private static (string Url, long Size)? Installer(JsonElement release)
-    {
-        if (!release.TryGetProperty("assets", out var assets)) return null;
-        foreach (var asset in assets.EnumerateArray())
-        {
-            if (!string.Equals(asset.GetProperty("name").GetString(), InstallerName, StringComparison.OrdinalIgnoreCase))
-                continue;
-            return (asset.GetProperty("browser_download_url").GetString() ?? "",
-                asset.TryGetProperty("size", out var size) ? size.GetInt64() : 0);
-        }
-        return null;
-    }
-
-    private static (IReadOnlyList<string> Ru, IReadOnlyList<string> En) SplitNotes(string body)
-    {
-        var parts = body.Replace("\r\n", "\n").Split("\n---", 2);
-        var ru = Bullets(parts[0]);
-        var en = parts.Length > 1 ? Bullets(parts[1]) : [];
-        return (ru, en);
-    }
-
-    private static List<string> Bullets(string text) =>
-        text.Split('\n')
-            .Select(l => l.Trim())
-            .Where(l => l.StartsWith("- ") || l.StartsWith("* "))
-            .Select(l => l[2..].Trim())
-            .Where(l => l.Length > 0)
+        var current = AppInfo.Semantic;
+        var newer = ReleaseFeed.Parse(await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false), includePreReleases)
+            .Where(r => r.Version > current)
             .ToList();
+
+        UpdateInfo? update = null;
+        foreach (var release in newer)
+        {
+            var manifest = await ManifestAsync(release, ct).ConfigureAwait(false);
+            if (!ReleaseFeed.AllowsUpgradeFrom(manifest, current)) continue;
+
+            var choice = ReleaseFeed.PickInstaller(release, manifest, ReleaseFeed.CurrentArchitecture);
+            if (choice is null) continue;
+
+            update = new UpdateInfo(release.Version, choice.Asset.Url, choice.Asset.Size, choice.Sha256);
+            break;
+        }
+
+        return new UpdateCheck(update,
+            newer.Select(r => new ReleaseNotes(r.Version, r.Published, r.Ru, r.En)).ToList());
+    }
+
+    private async Task<UpdateManifest?> ManifestAsync(ReleaseEntry release, CancellationToken ct)
+    {
+        var asset = ReleaseFeed.ManifestAsset(release);
+        if (asset is null) return null;
+
+        using var response = await _http.GetAsync(asset.Url, ct).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+
+        try
+        {
+            return JsonSerializer.Deserialize<UpdateManifest>(
+                await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false), ReleaseFeed.JsonOptions);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
 
     public async Task<string> DownloadAsync(UpdateInfo info, IProgress<double> progress, CancellationToken ct)
     {
-        var path = Path.Combine(Path.GetTempPath(), "WinStart", InstallerName);
+        var path = Path.Combine(Path.GetTempPath(), "WinStart", ReleaseFeed.InstallerName);
         if (!await download.DownloadAsync([info.DownloadUrl], path, progress, ct).ConfigureAwait(false))
             throw new IOException("download failed");
+
+        if (info.Sha256 is not null && !await MatchesAsync(path, info.Sha256, ct).ConfigureAwait(false))
+        {
+            try { File.Delete(path); }
+            catch { }
+            throw new UpdateIntegrityException();
+        }
+
         return path;
+    }
+
+    private static async Task<bool> MatchesAsync(string path, string expected, CancellationToken ct)
+    {
+        await using var stream = File.OpenRead(path);
+        var hash = Convert.ToHexString(await SHA256.HashDataAsync(stream, ct).ConfigureAwait(false));
+        return hash.Equals(expected, StringComparison.OrdinalIgnoreCase);
     }
 
     public void InstallAndExit(string installerPath)
@@ -125,8 +114,6 @@ public sealed class UpdateService(IDownloadService download) : IUpdateService, I
         Process.Start(new ProcessStartInfo(installerPath, "/update") { UseShellExecute = true });
         System.Windows.Application.Current.Shutdown();
     }
-
-    private static Version Normalize(Version v) => new(v.Major, v.Minor, Math.Max(v.Build, 0), 0);
 
     public void Dispose() => _http.Dispose();
 }

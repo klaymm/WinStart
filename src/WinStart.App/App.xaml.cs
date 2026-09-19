@@ -8,6 +8,7 @@ using WinStart.App.Views;
 using WinStart.Core.Abstractions;
 using WinStart.Core.Services;
 using WinStart.Core.Tweaks;
+using WinStart.Core.Updates;
 
 namespace WinStart.App;
 
@@ -27,6 +28,18 @@ public partial class App : Application
 
         _services = BuildServices();
 
+        try
+        {
+            DataMigrator.Run(_services.GetRequiredService<IPathProvider>().UserData);
+        }
+        catch (Exception ex)
+        {
+            LogFatal(ex);
+            MessageBox.Show(ex.Message, "WinStart", MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown(1);
+            return;
+        }
+
         _settings = _services.GetRequiredService<ISettingsService>();
         _loc = _services.GetRequiredService<ILocalizationService>();
 
@@ -42,6 +55,8 @@ public partial class App : Application
         MainWindow = shell;
         ShutdownMode = ShutdownMode.OnMainWindowClose;
         shell.Show();
+
+        UpdateLifecycle.OnStarted(AppInfo.Semantic);
 
         _ = _services.GetRequiredService<UpdatesViewModel>().CheckSilentlyAsync();
     }
@@ -67,6 +82,8 @@ public partial class App : Application
         services.AddSingleton<ITweakService, TweakService>();
         services.AddSingleton<IRestorePointService, RestorePointService>();
         services.AddSingleton<IWingetService, WingetService>();
+        services.AddSingleton<WinStart.Core.Apps.IInstalledAppsScanner, WinStart.Core.Apps.InstalledAppsScanner>();
+        services.AddSingleton<WinStart.Core.Audit.IServiceAuditService, WinStart.Core.Audit.ServiceAuditService>();
         services.AddSingleton<INetworkService, NetworkService>();
         services.AddSingleton<WinStart.Core.Unattend.IImageCheckService, WinStart.Core.Unattend.ImageCheckService>();
         services.AddSingleton<WinStart.Core.Startup.IStartupService, WinStart.Core.Startup.StartupService>();
@@ -90,6 +107,7 @@ public partial class App : Application
         services.AddSingleton<ProgramsViewModel>();
         services.AddSingleton<StartupViewModel>();
         services.AddSingleton<NetworkViewModel>();
+        services.AddSingleton<ServicesViewModel>();
         services.AddTransient<CategoryPageViewModel>();
         services.AddSingleton(sp => new SettingsViewModel(
             sp.GetRequiredService<IThemeService>(),

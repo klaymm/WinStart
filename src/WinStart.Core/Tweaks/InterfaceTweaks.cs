@@ -24,7 +24,51 @@ internal static class InterfaceTweaks
         yield return LockScreen();
         yield return IconShadow();
         yield return SettingsHome();
+        yield return FileExtensions();
+        yield return HiddenFiles();
+        yield return RecycleBinInNavigation();
     }
+
+    private const string RecycleBinClsid = "{645FF040-5081-101B-9F08-00AA002F954E}";
+    private const string RecycleBinInThisPcKey =
+        $@"HKLM\Software\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{RecycleBinClsid}";
+
+    private static TweakDefinition FileExtensions() => new()
+    {
+        Id = "interface.fileExtensions",
+        Category = TweakCategory.Interface,
+        Order = 16,
+        NeedsExplorerRestart = true,
+        RegistryActions = [RegistryAction.Set(Keys.ExplorerAdvanced, "HideFileExt", 0)],
+        RevertActions = [RegistryAction.Set(Keys.ExplorerAdvanced, "HideFileExt", 1)]
+    };
+
+    private static TweakDefinition HiddenFiles() => new()
+    {
+        Id = "interface.hiddenFiles",
+        Category = TweakCategory.Interface,
+        Order = 17,
+        NeedsExplorerRestart = true,
+        RegistryActions = [RegistryAction.Set(Keys.ExplorerAdvanced, "Hidden", 1)],
+        RevertActions = [RegistryAction.Set(Keys.ExplorerAdvanced, "Hidden", 2)]
+    };
+
+    private static TweakDefinition RecycleBinInNavigation() => new()
+    {
+        Id = "interface.recycleBinNav",
+        Category = TweakCategory.Interface,
+        Order = 18,
+        NeedsExplorerRestart = true,
+        RegistryActions =
+        [
+            RegistryAction.Set($@"HKCU\Software\Classes\CLSID\{RecycleBinClsid}", "System.IsPinnedToNameSpaceTree", 1),
+            RegistryAction.DeleteKey(RecycleBinInThisPcKey)
+        ],
+        RevertActions =
+        [
+            RegistryAction.DeleteValue($@"HKCU\Software\Classes\CLSID\{RecycleBinClsid}", "System.IsPinnedToNameSpaceTree")
+        ]
+    };
 
     private static TweakDefinition Home() => new()
     {

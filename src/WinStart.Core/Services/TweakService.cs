@@ -186,6 +186,7 @@ public sealed class TweakService : ITweakService
         var ctx = CreateContext(def, latest?.Option, applied.Any(e => e.Extended), progress);
         var entry = NewEntry(def, TweakDirection.Revert, latest?.Option, false);
         entry.Reversible = false;
+        if (_tweaks.ById(def.Id) is null && latest is { TitleKey.Length: > 0 }) entry.TitleKey = latest.TitleKey;
 
         try
         {

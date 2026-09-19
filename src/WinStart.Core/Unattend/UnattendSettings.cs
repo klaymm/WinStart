@@ -39,6 +39,26 @@ public sealed class UnattendSettings
 {
     public const int CurrentVersion = 2;
 
+    public static IReadOnlyDictionary<int, Action<System.Text.Json.Nodes.JsonObject>> Migrations { get; } =
+        new Dictionary<int, Action<System.Text.Json.Nodes.JsonObject>>();
+
+    public static bool TryMigrate(System.Text.Json.Nodes.JsonObject node)
+    {
+        var version = node["Version"] is { } v && v.GetValueKind() == System.Text.Json.JsonValueKind.Number
+            ? v.GetValue<int>()
+            : 1;
+
+        while (version < CurrentVersion)
+        {
+            if (!Migrations.TryGetValue(version, out var step)) return false;
+            step(node);
+            version++;
+            node["Version"] = version;
+        }
+
+        return version == CurrentVersion;
+    }
+
     public int Version { get; set; } = CurrentVersion;
 
     // ---- Регион и язык ----

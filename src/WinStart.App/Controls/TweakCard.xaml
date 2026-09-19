@@ -150,7 +150,7 @@
                             </MultiBinding>
                         </ui:Button.Visibility>
                         <ui:Button.Content>
-                            <TextBlock>
+                            <TextBlock Foreground="{Binding (TextElement.Foreground), RelativeSource={RelativeSource AncestorType=ContentPresenter}}">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="Text" Value="{Binding ActionVerb}" />

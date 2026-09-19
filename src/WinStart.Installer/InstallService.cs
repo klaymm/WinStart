@@ -69,13 +69,22 @@ public sealed class InstallService
         progress.Report(("removing", 60));
 
         if (IsOwnFolder(targetDir))
-            await Task.Run(() => DeleteContents(targetDir), ct).ConfigureAwait(false);
+            await Task.Run(() => FolderSwap.DeleteContents(targetDir), ct).ConfigureAwait(false);
 
         progress.Report(("removing", 80));
         if (full)
         {
             StopApp("Everything");
-            await Task.Run(() => TryDeleteFolder(ToolsFolder), ct).ConfigureAwait(false);
+            await Task.Run(() =>
+            {
+                FolderSwap.TryDelete(ToolsFolder);
+                if (IsOwnFolder(targetDir))
+                {
+                    FolderSwap.TryDelete(StagingFolder(targetDir));
+                    FolderSwap.TryDelete(BackupFolder(targetDir));
+                }
+            }, ct).ConfigureAwait(false);
+            UpdateStateStore.Delete();
         }
         RemoveContextMenu(all: full);
 
@@ -129,12 +138,6 @@ public sealed class InstallService
         return space < 0 ? command : command[..space];
     }
 
-    private static void TryDeleteFolder(string dir)
-    {
-        try { if (Directory.Exists(dir)) Directory.Delete(dir, true); }
-        catch { }
-    }
-
     private static void RemoveShortcuts()
     {
         var startMenu = Path.Combine(
@@ -147,37 +150,6 @@ public sealed class InstallService
             try { if (File.Exists(lnk)) File.Delete(lnk); }
             catch { }
         }
-    }
-
-    private static void DeleteContents(string dir)
-    {
-        if (!Directory.Exists(dir)) return;
-        var self = Environment.ProcessPath;
-
-        foreach (var file in SafeFiles(dir))
-        {
-            if (self is not null && string.Equals(file, self, StringComparison.OrdinalIgnoreCase)) continue;
-            try { File.SetAttributes(file, FileAttributes.Normal); File.Delete(file); }
-            catch { }
-        }
-
-        foreach (var sub in SafeDirs(dir))
-        {
-            try { Directory.Delete(sub, true); }
-            catch { }
-        }
-    }
-
-    private static IEnumerable<string> SafeFiles(string dir)
-    {
-        try { return Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories).ToList(); }
-        catch { return []; }
-    }
-
-    private static IEnumerable<string> SafeDirs(string dir)
-    {
-        try { return Directory.EnumerateDirectories(dir).ToList(); }
-        catch { return []; }
     }
 
     private static void ScheduleFolderRemoval(string dir)
@@ -194,27 +166,162 @@ public sealed class InstallService
         catch { }
     }
 
-    public async Task InstallAsync(string targetDir, bool desktopShortcut,
+    public static bool SamePath(string a, string b) =>
+        string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(a)),
+            Path.TrimEndingDirectorySeparator(Path.GetFullPath(b)), StringComparison.OrdinalIgnoreCase);
+
+    private static bool CanReplace(string targetDir)
+    {
+        if (!Directory.Exists(targetDir)) return true;
+        if (InstalledLocation is { } installed && SamePath(installed, targetDir)) return true;
+
+        try { return !Directory.EnumerateFileSystemEntries(targetDir).Any(); }
+        catch { return false; }
+    }
+
+    public static string StagingFolder(string targetDir) => targetDir + ".new";
+
+    public static string BackupFolder(string targetDir) => targetDir + ".old";
+
+    public static string PayloadVersion { get; } = ReadPayloadVersion();
+
+    private static string ReadPayloadVersion()
+    {
+        var asm = typeof(InstallService).Assembly;
+        var info = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        var plus = info?.IndexOf('+') ?? -1;
+        var version = plus >= 0 ? info![..plus] : info;
+        return !string.IsNullOrWhiteSpace(version) ? version : asm.GetName().Version?.ToString(3) ?? "1.0.0";
+    }
+
+    public static string? InstalledVersion
+    {
+        get
+        {
+            try
+            {
+                using var key = Registry.LocalMachine.OpenSubKey(UninstallKey);
+                return key?.GetValue("DisplayVersion") as string;
+            }
+            catch { return null; }
+        }
+    }
+
+    public async Task<string?> InstallAsync(string targetDir, bool desktopShortcut,
         bool darkTheme, string language,
         IProgress<(string Stage, double Percent)> progress, CancellationToken ct,
-        bool writeSettings = true)
+        bool writeSettings = true, bool keepBackup = false)
     {
-        Directory.CreateDirectory(targetDir);
+        var staging = StagingFolder(targetDir);
+        var backup = BackupFolder(targetDir);
+        var hasBackup = false;
 
         progress.Report(("extracting", 5));
-        await Task.Run(() => ExtractPayload(targetDir, progress), ct).ConfigureAwait(false);
+        if (CanReplace(targetDir))
+        {
+            await Task.Run(() =>
+            {
+                FolderSwap.TryDelete(staging);
+                Directory.CreateDirectory(staging);
+                ExtractPayload(staging, progress);
+            }, ct).ConfigureAwait(false);
 
-        progress.Report(("shortcuts", 88));
-        CreateShortcuts(targetDir, desktopShortcut);
+            ct.ThrowIfCancellationRequested();
+            progress.Report(("replacing", 86));
+            hasBackup = await Task.Run(() =>
+            {
+                StopApp(Path.GetFileNameWithoutExtension(ExeName));
+                return FolderSwap.Replace(targetDir, staging, backup);
+            }).ConfigureAwait(false);
+        }
+        else
+        {
+            Directory.CreateDirectory(targetDir);
+            await Task.Run(() => ExtractPayload(targetDir, progress), ct).ConfigureAwait(false);
+        }
 
-        progress.Report(("registering", 95));
-        WriteUninstallInfo(targetDir);
+        progress.Report(("registering", 90));
+        try
+        {
+            WriteUninstallInfo(targetDir, PayloadVersion);
+        }
+        catch
+        {
+            if (hasBackup) await Task.Run(() => FolderSwap.Replace(targetDir, backup, staging)).ConfigureAwait(false);
+            FolderSwap.TryDelete(staging);
+            throw;
+        }
+
         CopySelfAsUninstaller(targetDir);
+        RemoveContextMenu(all: false);
+
+        progress.Report(("shortcuts", 95));
+        RemoveShortcuts();
+        CreateShortcuts(targetDir, desktopShortcut);
 
         if (writeSettings) WriteAppSettings(darkTheme, language);
 
+        if (hasBackup && !keepBackup)
+        {
+            await Task.Run(() => FolderSwap.TryDelete(backup)).ConfigureAwait(false);
+            hasBackup = false;
+        }
+
         progress.Report(("done", 100));
+        return hasBackup ? backup : null;
     }
+
+    public enum StartResult { Confirmed, Failed, TimedOut }
+
+    public static async Task<StartResult> LaunchAndConfirmAsync(string targetDir, TimeSpan timeout,
+        CancellationToken ct)
+    {
+        Process? process;
+        try
+        {
+            process = Process.Start(new ProcessStartInfo(Path.Combine(targetDir, ExeName)) { UseShellExecute = true });
+        }
+        catch
+        {
+            return StartResult.Failed;
+        }
+
+        if (process is null) return StartResult.Failed;
+
+        using (process)
+        {
+            var deadline = DateTime.UtcNow + timeout;
+            while (DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(500, ct).ConfigureAwait(false);
+                if (UpdateStateStore.Load()?.Confirmed == true) return StartResult.Confirmed;
+                if (process.HasExited)
+                    return UpdateStateStore.Load()?.Confirmed == true ? StartResult.Confirmed : StartResult.Failed;
+            }
+        }
+
+        return StartResult.TimedOut;
+    }
+
+    public static async Task RollbackAsync(string targetDir, string backupDir, string? fromVersion,
+        UpdateStateDto? state)
+    {
+        await Task.Run(() =>
+        {
+            StopApp(Path.GetFileNameWithoutExtension(ExeName));
+
+            var failed = targetDir + ".failed";
+            FolderSwap.Replace(targetDir, backupDir, failed);
+            FolderSwap.TryDelete(failed);
+
+            if (!string.IsNullOrWhiteSpace(state?.DataDir) && !string.IsNullOrWhiteSpace(state.DataBackupDir))
+                FolderSwap.RestoreFiles(state.DataBackupDir, state.DataDir);
+        }).ConfigureAwait(false);
+
+        if (!string.IsNullOrWhiteSpace(fromVersion)) WriteUninstallInfo(targetDir, fromVersion);
+    }
+
+    public static void DiscardBackup(string? backupDir) => FolderSwap.TryDelete(backupDir);
 
     public static bool HasDesktopShortcut => File.Exists(Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.CommonDesktopDirectory), $"{AppName}.lnk"));
@@ -320,10 +427,8 @@ public sealed class InstallService
         catch { }
     }
 
-    private static void WriteUninstallInfo(string targetDir)
+    private static void WriteUninstallInfo(string targetDir, string version)
     {
-        var version = typeof(InstallService).Assembly.GetName().Version?.ToString(3) ?? "1.0.0";
-
         using var key = Registry.LocalMachine.CreateSubKey(UninstallKey, true);
         key.SetValue("DisplayName", AppName);
         key.SetValue("DisplayVersion", version);

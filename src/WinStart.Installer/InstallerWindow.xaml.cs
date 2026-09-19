@@ -135,23 +135,26 @@ public partial class InstallerWindow : FluentWindow
             _targetDir = InstallService.NormalizeTarget(
                 string.IsNullOrWhiteSpace(LocationBox.Text) ? _install.DefaultLocation : LocationBox.Text);
 
+            var fromVersion = InstallService.InstalledVersion;
+
             if (_alreadyInstalled)
             {
-                ShowProgress(_loc[_updateMode ? "updating" : "removingOld"]);
                 var old = InstallService.InstalledLocation;
-                if (old is not null)
+                if (old is not null && !InstallService.SamePath(old, _targetDir))
+                {
+                    ShowProgress(_loc[_updateMode ? "updating" : "removingOld"]);
                     await _install.UninstallAsync(old, _progress, _cts.Token, full: false);
+                }
             }
 
             ShowProgress(_loc[_updateMode ? "updating" : "installing"]);
-            await _install.InstallAsync(_targetDir, desktop, _dark, _loc.Lang, _progress, _cts.Token,
-                writeSettings: !_updateMode);
+            var backup = await _install.InstallAsync(_targetDir, desktop, _dark, _loc.Lang, _progress, _cts.Token,
+                writeSettings: !_updateMode, keepBackup: _updateMode);
             _installed = true;
 
             if (_updateMode)
             {
-                InstallService.Launch(_targetDir);
-                Close();
+                await CompleteUpdateAsync(fromVersion, backup);
                 return;
             }
 
@@ -165,6 +168,62 @@ public partial class InstallerWindow : FluentWindow
         {
             ShowFinish(ok: false, _loc["failed"], ex.Message);
         }
+    }
+
+    private async Task CompleteUpdateAsync(string? fromVersion, string? backup)
+    {
+        if (backup is null)
+        {
+            InstallService.Launch(_targetDir);
+            Close();
+            return;
+        }
+
+        try
+        {
+            UpdateStateStore.Save(new UpdateStateDto
+            {
+                FromVersion = fromVersion ?? "",
+                ToVersion = InstallService.PayloadVersion,
+                InstallDir = _targetDir,
+                BackupDir = backup,
+                StartedUtc = DateTime.UtcNow
+            });
+        }
+        catch
+        {
+            InstallService.DiscardBackup(backup);
+            InstallService.Launch(_targetDir);
+            Close();
+            return;
+        }
+
+        Bar.IsIndeterminate = true;
+        ProgressStage.Text = _loc["verifying"];
+
+        var result = await InstallService.LaunchAndConfirmAsync(_targetDir, TimeSpan.FromMinutes(3), _cts.Token);
+        Bar.IsIndeterminate = false;
+
+        if (result == InstallService.StartResult.Confirmed)
+        {
+            InstallService.DiscardBackup(backup);
+            UpdateStateStore.Delete();
+            Close();
+            return;
+        }
+
+        if (result == InstallService.StartResult.TimedOut)
+        {
+            Close();
+            return;
+        }
+
+        ProgressStage.Text = _loc["rollingBack"];
+        await InstallService.RollbackAsync(_targetDir, backup, fromVersion, UpdateStateStore.Load());
+        UpdateStateStore.Delete();
+        _installed = false;
+        InstallService.Launch(_targetDir);
+        ShowFinish(ok: false, _loc["rolledBack"], _loc["rolledBackText"]);
     }
 
     private async void OnUninstall(object sender, RoutedEventArgs e)

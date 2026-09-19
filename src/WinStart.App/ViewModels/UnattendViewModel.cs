@@ -278,8 +278,15 @@ public sealed partial class UnattendViewModel : ObservableObject
         {
             if (File.Exists(_file))
             {
-                var loaded = JsonSerializer.Deserialize<UnattendSettings>(File.ReadAllText(_file), JsonOptions);
-                if (loaded is { IsCurrentVersion: true }) return loaded;
+                var node = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(_file)) as System.Text.Json.Nodes.JsonObject;
+                var loaded = node is not null && UnattendSettings.TryMigrate(node)
+                    ? node.Deserialize<UnattendSettings>(JsonOptions)
+                    : null;
+                if (loaded is { IsCurrentVersion: true })
+                {
+                    if (loaded.WingetApps.Remove("dotPDNLLC.paintdotnet")) loaded.WingetApps.Add("dotPDN.PaintDotNet");
+                    return loaded;
+                }
             }
         }
         catch { }
@@ -790,7 +797,16 @@ public sealed partial class UnattendViewModel : ObservableObject
             .Select(a => Toggle(a.Name, () => s.WingetApps.Contains(a.Id),
                 v => { if (v) s.WingetApps.Add(a.Id); else s.WingetApps.Remove(a.Id); }))
             .ToList();
-        var winget = Sec("ua.s.winget", [Note("ua.s.winget.desc"), List(_wingetToggles)]);
+        var wingetGroups = Enum.GetValues<WinStart.Core.Apps.WingetCategory>()
+            .Select(c => (Category: c, Items: WinStart.Core.Apps.WingetCatalog.Apps
+                .Select((a, i) => (App: a, Toggle: _wingetToggles[i]))
+                .Where(x => x.App.Category == c)
+                .Select(x => x.Toggle)
+                .ToList()))
+            .Where(g => g.Items.Count > 0)
+            .Select(g => (FormItem)Group($"programs.cat.{g.Category}", [List(g.Items)]))
+            .ToList();
+        var winget = Sec("ua.s.winget", [Note("ua.s.winget.desc"), .. wingetGroups]);
 
         // ---- Свои скрипты ----
         FormScripts Scripts(string titleKey, List<ScriptRow> rows, ScriptPhase phase)

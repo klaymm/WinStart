@@ -109,15 +109,21 @@ public partial class ShellWindow : FluentWindow
     {
         var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
 
-        var move = new TranslateTransform(0, 14);
+        var move = new TranslateTransform(0, 10);
         PageHost.RenderTransform = move;
+        PageHost.CacheMode = new BitmapCache();
         PageHost.Opacity = 0;
 
-        PageHost.BeginAnimation(OpacityProperty,
-            new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(240)) { EasingFunction = ease });
+        var slide = new DoubleAnimation(10, 0, TimeSpan.FromMilliseconds(280)) { EasingFunction = ease };
+        slide.Completed += (_, _) =>
+        {
+            if (ReferenceEquals(PageHost.RenderTransform, move)) PageHost.CacheMode = null;
+        };
 
-        move.BeginAnimation(TranslateTransform.YProperty,
-            new DoubleAnimation(14, 0, TimeSpan.FromMilliseconds(320)) { EasingFunction = ease });
+        PageHost.BeginAnimation(OpacityProperty,
+            new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(220)) { EasingFunction = ease });
+
+        move.BeginAnimation(TranslateTransform.YProperty, slide);
     }
 
     private void PlayIntro()
