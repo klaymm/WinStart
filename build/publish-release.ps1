@@ -25,7 +25,7 @@ function Read-Changelog([string]$file) {
     $loc = Get-Content (Join-Path $root "src\WinStart.App\Localization\$file") -Raw -Encoding UTF8 | ConvertFrom-Json
     $items = @()
     for ($n = 1; ; $n++) {
-        $text = $loc."changelog.$version.$n"
+        $text = $loc."changelog.$version.n$n"
         if (-not $text) { break }
         $items += $text
     }

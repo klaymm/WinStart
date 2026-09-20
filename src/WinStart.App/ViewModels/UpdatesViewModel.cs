@@ -25,6 +25,7 @@ public sealed partial class UpdatesViewModel : ObservableObject
 {
     private static readonly (string Version, DateTime Date, int Count)[] Releases =
     [
+        ("1.2.1-beta.2", new DateTime(2026, 9, 21), 2),
         ("1.2.1-beta.1", new DateTime(2026, 9, 19), 3),
         ("1.2.0", new DateTime(2026, 9, 19), 9),
         ("1.1.9", new DateTime(2026, 9, 19), 3),
@@ -215,7 +216,7 @@ public sealed partial class UpdatesViewModel : ObservableObject
             Date = FormatDate(release.Date),
             IsCurrent = SemVersion.TryParse(release.Version, out var v) && v == current,
             Changes = Enumerable.Range(1, release.Count)
-                .Select(n => _loc[$"changelog.{release.Version}.{n}"])
+                .Select(n => _loc[$"changelog.{release.Version}.n{n}"])
                 .ToList()
         });
 

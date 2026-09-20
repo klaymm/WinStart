@@ -401,7 +401,7 @@
                     <TextBlock Text="{loc:Text programs.nothingFound}" Style="{StaticResource CardSubtle}" Margin="6,8,0,0"
                                Visibility="{Binding NothingFound, Converter={StaticResource BoolToVisibility}}" />
 
-                    <ItemsControl ItemsSource="{Binding Groups}">
+                    <ItemsControl ItemsSource="{Binding GroupsView}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Border Style="{StaticResource SoftCard}" Margin="0,0,0,12"

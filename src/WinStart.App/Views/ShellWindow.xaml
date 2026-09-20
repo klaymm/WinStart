@@ -113,7 +113,7 @@
                     Background="{DynamicResource ApplicationBackgroundBrush}"
                     CornerRadius="12">
                 <Grid>
-                    <ContentControl x:Name="PageHost" Content="{Binding CurrentContent}" Margin="18,16,14,14" />
+                    <ContentControl x:Name="PageHost" Margin="18,16,14,14" />
                     <ContentPresenter x:Name="RootContentDialog" />
                 </Grid>
             </Border>

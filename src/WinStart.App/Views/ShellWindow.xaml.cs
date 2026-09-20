@@ -15,6 +15,7 @@ public partial class ShellWindow : FluentWindow
 {
     private readonly IDialogService _dialogs;
     private readonly ISettingsService _settings;
+    private readonly Dictionary<object, FrameworkElement> _keptPages = [];
 
     public ShellWindow(ShellViewModel viewModel, IDialogService dialogs, ISettingsService settings)
     {
@@ -22,6 +23,7 @@ public partial class ShellWindow : FluentWindow
         _settings = settings;
         InitializeComponent();
         DataContext = viewModel;
+        ShowPage(viewModel.CurrentContent);
 
         var area = SystemParameters.WorkArea;
         Width = Math.Min(Width, area.Width - 24);
@@ -35,13 +37,16 @@ public partial class ShellWindow : FluentWindow
         _dialogs.SetContentPresenter(RootContentDialog);
 
         if (DataContext is ShellViewModel vm)
+        {
             vm.PropertyChanged += (_, args) =>
             {
                 if (args.PropertyName != nameof(ShellViewModel.CurrentContent)) return;
 
+                ShowPage(vm.CurrentContent);
                 PlayPageTransition();
                 MoveNavGlass(animate: true);
             };
+        }
 
         Dispatcher.InvokeAsync(() => MoveNavGlass(animate: false), DispatcherPriority.Loaded);
         NavScroll.ScrollChanged += (_, _) => MoveNavGlass(animate: false);
@@ -67,6 +72,33 @@ public partial class ShellWindow : FluentWindow
             PlayIntro();
         else
             IntroOverlay.Visibility = Visibility.Collapsed;
+    }
+
+    private static bool IsKept(object? content) => content is ProgramsViewModel or UnattendViewModel;
+
+    private void ShowPage(object? content)
+    {
+        if (content is null || !IsKept(content))
+        {
+            PageHost.Content = content;
+            return;
+        }
+
+        if (!_keptPages.TryGetValue(content, out var page))
+        {
+            if (TryFindResource(new DataTemplateKey(content.GetType())) is not DataTemplate template
+                || template.LoadContent() is not FrameworkElement built)
+            {
+                PageHost.Content = content;
+                return;
+            }
+
+            built.DataContext = content;
+            page = built;
+            _keptPages[content] = page;
+        }
+
+        PageHost.Content = page;
     }
 
     private void MoveNavGlass(bool animate)
@@ -109,13 +141,13 @@ public partial class ShellWindow : FluentWindow
     {
         var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
 
-        var cardsAnimate = DataContext is ShellViewModel { CurrentContent: CategoryPageViewModel or SearchViewModel };
+        var content = (DataContext as ShellViewModel)?.CurrentContent;
+        var cardsAnimate = content is CategoryPageViewModel or SearchViewModel;
         var distance = cardsAnimate ? 0 : 10;
 
         var move = new TranslateTransform(0, distance);
         PageHost.RenderTransform = move;
-        PageHost.CacheMode = cardsAnimate ? null : new BitmapCache();
-        PageHost.Opacity = 0;
+        PageHost.CacheMode = cardsAnimate || IsKept(content) ? null : new BitmapCache();
 
         var slide = new DoubleAnimation(distance, 0, TimeSpan.FromMilliseconds(280)) { EasingFunction = ease };
         slide.Completed += (_, _) =>
@@ -124,7 +156,7 @@ public partial class ShellWindow : FluentWindow
         };
 
         PageHost.BeginAnimation(OpacityProperty,
-            new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(220)) { EasingFunction = ease });
+            new DoubleAnimation(0.35, 1, TimeSpan.FromMilliseconds(200)) { EasingFunction = ease });
 
         move.BeginAnimation(TranslateTransform.YProperty, slide);
     }

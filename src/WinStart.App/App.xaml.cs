@@ -59,6 +59,20 @@ public partial class App : Application
         UpdateLifecycle.OnStarted(AppInfo.Semantic);
 
         _ = _services.GetRequiredService<UpdatesViewModel>().CheckSilentlyAsync();
+        _ = Task.Run(WarmUpPages);
+    }
+
+    private void WarmUpPages()
+    {
+        try
+        {
+            _services.GetRequiredService<UnattendViewModel>();
+            _services.GetRequiredService<ProgramsViewModel>();
+        }
+        catch (Exception ex)
+        {
+            LogFatal(ex);
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)
