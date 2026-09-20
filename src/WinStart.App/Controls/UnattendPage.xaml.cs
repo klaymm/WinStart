@@ -21,6 +21,10 @@ public partial class UnattendPage : UserControl
     public UnattendPage()
     {
         InitializeComponent();
+        Loaded += (_, _) =>
+        {
+            if (DataContext is UnattendViewModel vm) _ = vm.FillFormAsync();
+        };
         PreviewKeyDown += (_, e) =>
         {
             if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control)
@@ -36,6 +40,14 @@ public partial class UnattendPage : UserControl
     private void OnTocClick(object sender, RoutedEventArgs e)
     {
         if (sender is not FrameworkElement { DataContext: FormSection section }) return;
+
+        if (FormList.ItemContainerGenerator.ContainerFromItem(section) is null
+            && DataContext is UnattendViewModel vm)
+        {
+            vm.FillFormNow();
+            FormList.UpdateLayout();
+        }
+
         if (FormList.ItemContainerGenerator.ContainerFromItem(section) is not FrameworkElement container) return;
 
         var top = container.TranslatePoint(new Point(0, 0), FormScroll).Y;

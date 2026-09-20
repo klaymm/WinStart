@@ -46,6 +46,53 @@ public sealed partial class UnattendViewModel : ObservableObject
     [ObservableProperty] private string? _statusText;
     [ObservableProperty] private bool _statusIsError;
 
+    // ---------------------------------------------------------------- постепенная сборка формы
+
+    private const int FormChunk = 2;
+
+    public ObservableCollection<FormSection> FormItems { get; } = [];
+
+    private bool _fillingForm;
+
+    public async Task FillFormAsync()
+    {
+        if (_fillingForm) return;
+        _fillingForm = true;
+
+        try
+        {
+            await FillChunksAsync();
+        }
+        finally
+        {
+            _fillingForm = false;
+        }
+    }
+
+    public void FillFormNow()
+    {
+        for (var i = FormItems.Count; i < Sections.Count; i++) FormItems.Add(Sections[i]);
+    }
+
+    private async Task FillChunksAsync()
+    {
+        while (FormItems.Count < Sections.Count)
+        {
+            var next = Math.Min(FormItems.Count + FormChunk, Sections.Count);
+            for (var i = FormItems.Count; i < next; i++) FormItems.Add(Sections[i]);
+
+            if (FormItems.Count < Sections.Count)
+                await System.Windows.Threading.Dispatcher.Yield(
+                    System.Windows.Threading.DispatcherPriority.Background);
+        }
+    }
+
+    partial void OnSectionsChanged(IReadOnlyList<FormSection> value)
+    {
+        FormItems.Clear();
+        _ = FillFormAsync();
+    }
+
     public void RefreshTexts()
     {
         OnPropertyChanged(nameof(Title));

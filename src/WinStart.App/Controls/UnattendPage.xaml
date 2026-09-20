@@ -193,7 +193,7 @@
                         </StackPanel>
                     </Border>
 
-                    <ItemsControl x:Name="FormList" ItemsSource="{Binding Sections}" />
+                    <ItemsControl x:Name="FormList" ItemsSource="{Binding FormItems}" />
 
                     <TextBlock Text="{loc:Text ua.search.empty}" Style="{StaticResource UaDesc}" Margin="6,12,0,0"
                                Visibility="{Binding NothingFound, Converter={StaticResource BoolToVisibility}}" />

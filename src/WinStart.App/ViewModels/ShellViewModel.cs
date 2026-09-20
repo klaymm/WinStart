@@ -196,6 +196,13 @@ public sealed partial class ShellViewModel : ObservableObject
 
         switch (content)
         {
+            case ProgramsViewModel programs:
+                _ = programs.FillGroupsAsync();
+                break;
+        }
+
+        switch (content)
+        {
             case HomeViewModel home when !home.IsLoaded:
                 _ = home.LoadAsync();
                 break;

@@ -119,6 +119,34 @@ public sealed partial class ProgramsViewModel : ObservableObject
     }
 
     public IReadOnlyList<WingetGroupViewModel> Groups { get; }
+
+    // ---------------------------------------------------------------- постепенная сборка списка
+
+    public System.Collections.ObjectModel.ObservableCollection<WingetGroupViewModel> GroupsView { get; } = [];
+
+    private bool _fillingGroups;
+
+    public async Task FillGroupsAsync()
+    {
+        if (_fillingGroups) return;
+        _fillingGroups = true;
+
+        try
+        {
+            while (GroupsView.Count < Groups.Count)
+            {
+                GroupsView.Add(Groups[GroupsView.Count]);
+
+                if (GroupsView.Count < Groups.Count)
+                    await System.Windows.Threading.Dispatcher.Yield(
+                        System.Windows.Threading.DispatcherPriority.Background);
+            }
+        }
+        finally
+        {
+            _fillingGroups = false;
+        }
+    }
     public IEnumerable<WingetAppViewModel> All => Groups.SelectMany(g => g.Items);
     public System.Collections.ObjectModel.ObservableCollection<WingetUpgradeViewModel> Upgrades { get; } = [];
 
